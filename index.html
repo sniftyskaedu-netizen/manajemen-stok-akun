@@ -300,11 +300,11 @@
 
       <!-- DASHBOARD TAB -->
       <div id="admin-dashboard" class="admin-tab-content">
-        <div
+        <div class="dashboard-header"
           style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
           <div>
-            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800;">Dashboard Admin</h2>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">Ringkasan aktivitas inventaris dan status akun.</p>
+            <h2 class="dash-title" style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800;">Dashboard Admin</h2>
+            <p class="dash-subtitle" style="color: var(--text-muted); font-size: 0.85rem;">Ringkasan aktivitas inventaris dan status akun.</p>
           </div>
           <button id="dashDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
             style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
@@ -313,7 +313,7 @@
         </div>
 
         <!-- Top Banner Total Akun (Memanjang Rapi di Atas) -->
-        <div class="card"
+        <div class="card total-accounts-banner"
           style="padding: 0.75rem 1.15rem; margin-bottom: 0.5rem; border-left: 4px solid var(--accent-primary); background: var(--bg-surface);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -386,7 +386,7 @@
           <div id="expiredAccountsContainer"></div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+        <div class="dashboard-charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
           <!-- Chart Presentase Stok Produk -->
           <div class="card">
             <div class="card-title"><i data-lucide="pie-chart"></i> Persentase Stok Produk</div>
