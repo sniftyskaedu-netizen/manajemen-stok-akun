@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccExpress Seller Hub — Manajemen & Pengiriman Akun Digital</title>
+  <meta name="description"
+    content="AccExpress Seller Hub - Kelola dan kirim akun digital premium dengan cepat, mudah, dan terorganisir.">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS Library for Multi-Sheet Excel Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- NAVIGATION BAR -->
+  <nav class="navbar">
+    <div class="nav-brand" id="navBrandBtn">
+      <div class="brand-icon">AX</div>
+      <span>AccExpress</span>
+      <span class="brand-badge">Seller Hub</span>
+    </div>
+
+    <div class="nav-controls">
+      <!-- Dark/Light Theme Toggle -->
+      <button id="themeToggleBtn" class="btn-theme-toggle" title="Ubah Mode Terang / Gelap">
+        <i data-lucide="sun" id="themeToggleIcon"></i>
+      </button>
+
+      <!-- Mobile / Admin Control Button -->
+      <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle menu">
+        <i data-lucide="menu"></i>
+      </button>
+    </div>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a class="nav-link active" data-view="sales-hub-view"><i data-lucide="zap"></i> Sales Hub</a></li>
+      <li><a class="nav-link" data-view="inventory-view"><i data-lucide="boxes"></i> Inventory Stok</a></li>
+      <li><a class="nav-link" data-view="lacak-view"><i data-lucide="clock"></i> Lacak Masa Aktif</a></li>
+      <li><a class="nav-link btn-admin-login" id="openAdminLoginBtn"><i data-lucide="shield"></i> Admin</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN PUBLIC CONTENT WRAPPER -->
+  <main id="publicView" class="main-container">
+
+    <!-- HERO SECTION -->
+    <section class="hero-section">
+      <h1 class="hero-title">AccExpress Seller Hub</h1>
+      <p class="hero-subtitle">Kelola dan kirim akun premium dengan cepat, mudah, dan terorganisir.</p>
+    </section>
+
+    <!-- VIEW 1: SALES HUB (QUICK ACCESS & INVENTORY SUMMARY) -->
+    <div id="sales-hub-view" class="public-tab-view">
+
+      <!-- QUICK ACCESS CARD -->
+      <section class="card">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem;">
+          <div class="card-title" style="margin-bottom: 0;">
+            <i data-lucide="send" style="color: var(--accent-primary);"></i> Quick Access / Kirim Cepat
+          </div>
+
+          <!-- TIPE AKSES ULTRA-MICRO PURE ICON TOGGLE DI POJOK KANAN -->
+          <div
+            style="display: flex; align-items: center; gap: 0.15rem; background: var(--bg-surface-hover); padding: 0.12rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+            <button type="button" class="qa-type-btn active" data-type="ACCOUNT" title="Tipe Email & Password"
+              style="border:none; background: var(--accent-primary); color:#ffffff; width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
+              <i data-lucide="mail" style="width:12px; height:12px;"></i>
+            </button>
+            <button type="button" class="qa-type-btn" data-type="LINK" title="Tipe Link / URL Akses"
+              style="border:none; background:transparent; color:var(--text-muted); width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
+              <i data-lucide="link" style="width:12px; height:12px;"></i>
+            </button>
+            <input type="hidden" id="qaAccessType" value="ACCOUNT">
+          </div>
+        </div>
+
+        <form id="quickAccessForm">
+          <div
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; align-items: start; margin-bottom: 1.25rem;">
+
+            <!-- BARIS 1 (KIRI): EMAIL (ACCOUNT MODE) -->
+            <div id="qaEmailGroup" class="form-group">
+              <label class="form-label">Email / Username <span style="color:var(--status-expired)">*</span></label>
+              <input type="text" id="qaUsername" class="form-input" placeholder="e.g. customer@gmail.com">
+            </div>
+
+            <!-- BARIS 1 (KIRI): LINK (LINK MODE) -->
+            <div id="qaLinkGroup" class="form-group" style="display: none;">
+              <label class="form-label">Link / URL Akses <span style="color:var(--status-expired)">*</span></label>
+              <input type="url" id="qaLink" class="form-input" placeholder="https://canva.com/brand/join?invite=...">
+            </div>
+
+            <!-- BARIS 1 (KANAN): PRODUK DROPDOWN -->
+            <div class="form-group">
+              <label class="form-label">Produk <span style="color:var(--status-expired)">*</span></label>
+              <select id="qaProduct" class="form-select" required>
+                <option value="" disabled selected>-- Pilih Produk --</option>
+              </select>
+            </div>
+
+            <!-- BARIS 2 (KIRI): PASSWORD (ACCOUNT MODE) -->
+            <div id="qaPasswordGroup" class="form-group">
+              <label class="form-label">Password <span style="color:var(--status-expired)">*</span></label>
+              <div class="input-wrapper">
+                <input type="password" id="qaPassword" class="form-input" placeholder="Password akun">
+                <button type="button" class="input-icon-btn toggle-password-btn" data-input="qaPassword">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- BARIS 2 (KIRI): KETERANGAN LINK (LINK MODE) -->
+            <div id="qaLinkNotesGroup" class="form-group" style="display: none;">
+              <label class="form-label">Keterangan Akses <span
+                  style="font-size:0.75rem; color:var(--text-muted);">(Opsional)</span></label>
+              <input type="text" id="qaLinkNotes" class="form-input" placeholder="e.g. Link Undangan Canva Pro Team">
+            </div>
+
+            <!-- BARIS 2 (KANAN): NO. WHATSAPP -->
+            <div class="form-group">
+              <label class="form-label">No. WhatsApp <span style="color:var(--status-expired)">*</span></label>
+              <input type="tel" id="qaCustomerWa" class="form-input" placeholder="Masukan nomor" inputmode="numeric"
+                pattern="[0-9]*" required>
+            </div>
+
+            <!-- BARIS 3 (KIRI): DURASI -->
+            <div class="form-group">
+              <label class="form-label">Durasi <span style="color:var(--status-expired)">*</span></label>
+              <input type="number" id="qaDuration" class="form-input" placeholder="Masukan angka" min="1" required>
+            </div>
+
+            <!-- BARIS 3 (KANAN): SATUAN DURASI -->
+            <div class="form-group">
+              <label class="form-label">Satuan Durasi <span style="color:var(--status-expired)">*</span></label>
+              <select id="qaDurationUnit" class="form-select" required>
+                <option value="" disabled selected>-- Pilih Satuan --</option>
+                <option value="Hari">Hari</option>
+                <option value="Minggu">Minggu</option>
+                <option value="Bulan">Bulan</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- TOMBOL SALIN & KIRIM -->
+          <div style="margin-top: 1.25rem;">
+            <button type="submit" class="btn btn-primary btn-full" style="padding: 0.75rem; font-size: 1rem;">
+              <i data-lucide="copy"></i> Salin & Kirim
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- INVENTORY SUMMARY PREVIEW ON SALES HUB -->
+      <section class="card">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+          <div class="card-title" style="margin-bottom: 0;">
+            <i data-lucide="boxes" style="color: var(--status-available);"></i> Stok Ready (Tersedia)
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <!-- Filter Berdasarkan Kategori Produk -->
+            <select id="salesHubProductFilter" class="form-select"
+              style="padding: 0.35rem 0.65rem; font-size: 0.85rem; width: auto;">
+              <option value="">Semua Kategori Produk</option>
+            </select>
+
+            <a class="btn btn-secondary btn-sm" data-view="inventory-view">
+              Lihat Semua Inventory <i data-lucide="arrow-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Produk</th>
+                <th>Email / Username</th>
+                <th>Password</th>
+                <th>Status</th>
+                <th style="text-align: right;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="salesHubInventoryTbody">
+              <!-- Dynamic Ready Accounts -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW 2: FULL INVENTORY VIEW -->
+    <div id="inventory-view" class="public-tab-view" style="display: none;">
+      <section class="card">
+        <div class="card-title">
+          <i data-lucide="database" style="color: var(--accent-primary);"></i> Kelola Inventory Stok Akun
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="filter-bar">
+          <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <input type="text" id="invSearchInput" class="form-input search-input" placeholder="Cari email / produk...">
+            <select id="invProductFilter" class="form-select" style="width: auto;">
+              <option value="">Semua Produk</option>
+            </select>
+            <select id="invStatusFilter" class="form-select" style="width: auto;">
+              <option value="">Semua Status</option>
+              <option value="TERSEDIA">TERSEDIA</option>
+              <option value="TERKIRIM">TERKIRIM</option>
+              <option value="EXPIRED">EXPIRED</option>
+            </select>
+            <button id="refreshInventoryBtn" class="form-select"
+              style="width: auto; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; font-weight: 600;"
+              title="Refresh Stok">
+              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Produk</th>
+                <th>Email / Username</th>
+                <th>Password</th>
+                <th>Status</th>
+                <th>No. WhatsApp</th>
+                <th>Tgl Kirim</th>
+                <th>Expired</th>
+                <th style="text-align: right;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTbody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW 3: LACAK MASA AKTIF VIEW (SEPARATE TAB) -->
+    <div id="lacak-view" class="public-tab-view" style="display: none;">
+      <section class="card">
+        <div class="card-title">
+          <i data-lucide="clock" style="color: var(--status-available);"></i> Lacak Masa Aktif Akun Pelanggan
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Masukkan nomor WhatsApp pelanggan atau email akun untuk mengecek sisa masa aktif pesanan.
+        </p>
+        <form id="trackForm" class="filter-bar" style="margin-bottom: 0;">
+          <input type="text" id="trackQuery" class="form-input" style="flex:1;"
+            placeholder="Nomor WhatsApp / Email Customer..." required>
+          <button type="submit" class="btn btn-primary"><i data-lucide="search"></i> Cari Pesanan</button>
+        </form>
+
+        <div id="trackResultContainer" style="display: none; margin-top: 1.5rem;">
+          <!-- Dynamic Result Card -->
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- ADMIN PANEL VIEW (Hidden by default until logged in) -->
+  <div id="adminView" class="admin-layout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header-badge">
+        <div class="sidebar-header-icon"><i data-lucide="shield-check"></i></div>
+        <div>
+          <div class="sidebar-header-title">Admin Control</div>
+          <div class="sidebar-header-sub">Management Hub</div>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-tab="admin-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</li>
+        <li class="sidebar-item" data-tab="admin-accounts"><i data-lucide="key"></i> Kelola Akun</li>
+        <li class="sidebar-item" data-tab="admin-products"><i data-lucide="package"></i> Produk</li>
+        <li class="sidebar-item" data-tab="admin-templates"><i data-lucide="file-text"></i> Template</li>
+        <li class="sidebar-item" data-tab="admin-transactions"><i data-lucide="history"></i> Riwayat</li>
+        <li class="sidebar-item" data-tab="admin-activity"><i data-lucide="activity"></i> Activity Log</li>
+        <li class="sidebar-item" data-tab="admin-settings"><i data-lucide="settings"></i> Pengaturan</li>
+      </ul>
+    </aside>
+
+    <!-- Admin Content Views -->
+    <main class="admin-content">
+
+      <!-- DASHBOARD TAB -->
+      <div id="admin-dashboard" class="admin-tab-content">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800;">Dashboard Admin</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Ringkasan aktivitas inventaris dan status akun.</p>
+          </div>
+          <button id="dashDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
+            style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
+            <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i>
+          </button>
+        </div>
+
+        <!-- Top Banner Total Akun (Memanjang Rapi di Atas) -->
+        <div class="card"
+          style="padding: 0.75rem 1.15rem; margin-bottom: 0.5rem; border-left: 4px solid var(--accent-primary); background: var(--bg-surface);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="stat-icon total" style="width: 38px; height: 38px; font-size: 1.1rem;"><i
+                  data-lucide="database"></i></div>
+              <div>
+                <div class="stat-title"
+                  style="font-weight: 700; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;">
+                  TOTAL AKUN</div>
+                <div class="stat-value" id="statTotalAccounts"
+                  style="font-size: 1.4rem; font-weight: 800; color: var(--accent-primary); line-height: 1;">0</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span
+                style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">INVENTORY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Ultra-Compact Symmetrical Stat Cards Grid (Jarak Lebih Dekat) -->
+        <div class="stats-grid"
+          style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.5rem; margin-bottom: 0.85rem;">
+          <div class="stat-card">
+            <div class="stat-icon available"><i data-lucide="check-circle-2"></i></div>
+            <div class="stat-details">
+              <div class="stat-value" id="statAvailableAccounts">0</div>
+              <div class="stat-title">TERSEDIA</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon sent"><i data-lucide="send"></i></div>
+            <div class="stat-details">
+              <div class="stat-value" id="statActiveAccounts">0</div>
+              <div class="stat-title">TERKIRIM</div>
+            </div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid var(--status-warning);">
+            <div class="stat-icon warning"><i data-lucide="alert-triangle"></i></div>
+            <div class="stat-details">
+              <div class="stat-value" id="statExpiringSoonAccounts" style="color: var(--status-warning);">0</div>
+              <div class="stat-title">AKAN EXPIRED</div>
+            </div>
+          </div>
+          <div class="stat-card" style="border-left: 4px solid var(--status-expired);">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: var(--status-expired);"><i
+                data-lucide="x-circle"></i></div>
+            <div class="stat-details">
+              <div class="stat-value" id="statExpiredTotalAccounts" style="color: var(--status-expired);">0</div>
+              <div class="stat-title">EXPIRED</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTAINER AKUN AKAN EXPIRED (< 12 JAM) — HANYA TAMPIL JIKA ADA AKUN -->
+        <div id="expiringSoonCardWrapper" class="card"
+          style="display: none; border-left: 4px solid var(--status-warning);">
+          <div class="card-title" style="color: var(--status-warning);">
+            <i data-lucide="alert-triangle"></i> Peringatan Akun Akan Expired (&lt; 12 Jam)
+          </div>
+          <div id="expiringSoonContainer"></div>
+        </div>
+
+        <!-- CONTAINER AKUN EXPIRED (Masa Aktif Lewat) — HANYA TAMPIL JIKA ADA AKUN -->
+        <div id="expiredAccountsCardWrapper" class="card"
+          style="display: none; border-left: 4px solid var(--status-expired);">
+          <div class="card-title" style="color: var(--status-expired);">
+            <i data-lucide="x-circle"></i> Akun Expired
+          </div>
+          <div id="expiredAccountsContainer"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+          <!-- Chart Presentase Stok Produk -->
+          <div class="card">
+            <div class="card-title"><i data-lucide="pie-chart"></i> Persentase Stok Produk</div>
+            <div id="productStockChart" class="chart-container"></div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="card">
+            <div class="card-title"><i data-lucide="history"></i> Transaksi Terakhir</div>
+            <div id="recentActivityFeed" class="activity-feed"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KELOLA AKUN TAB -->
+      <div id="admin-accounts" class="admin-tab-content" style="display: none;">
+        <div class="filter-bar">
+          <div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Stok Akun</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah, edit, dan hapus stok akun digital.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button id="adminDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
+              style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
+              <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button id="openAddAccountModalBtn" class="btn btn-primary"><i data-lucide="plus"></i> Tambah Akun
+              Baru</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-bar" style="margin-bottom: 1rem;">
+            <div class="filter-group">
+              <input type="text" id="adminAccSearch" class="form-input search-input"
+                placeholder="Cari email / username...">
+              <select id="adminAccProductFilter" class="form-select" style="width: auto;">
+                <option value="">Semua Produk</option>
+              </select>
+              <select id="adminAccStatusFilter" class="form-select" style="width: auto;">
+                <option value="">Semua Status</option>
+                <option value="TERSEDIA">TERSEDIA</option>
+                <option value="TERKIRIM">TERKIRIM</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Produk</th>
+                  <th>Email / Username</th>
+                  <th>Password</th>
+                  <th>Status</th>
+                  <th>No. WhatsApp</th>
+                  <th>Expired</th>
+                  <th>Catatan / Info</th>
+                  <th style="text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="adminAccTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- KELOLA PRODUK TAB -->
+      <div id="admin-products" class="admin-tab-content" style="display: none;">
+        <div class="filter-bar">
+          <div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Kategori Produk
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah dan kelola kategori produk digital.</p>
+          </div>
+          <button id="openAddProductModalBtn" class="btn btn-primary"><i data-lucide="plus"></i> Tambah Kategori
+            Produk</button>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nama Kategori Produk</th>
+                  <th>Stok Tersedia</th>
+                  <th>Akun Terkirim</th>
+                  <th>Status Produk</th>
+                  <th style="text-align: right;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="adminProdTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEMPLATE PESAN TAB -->
+      <div id="admin-templates" class="admin-tab-content" style="display: none;">
+        <div class="filter-bar">
+          <div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Template Pesan WhatsApp
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Atur template pesan otomatis yang dapat
+              dikategorikan secara Global atau per Produk.</p>
+          </div>
+          <button id="openAddTemplateModalBtn" class="btn btn-primary"><i data-lucide="plus"></i> Tambah
+            Template</button>
+        </div>
+
+        <div class="card">
+          <div class="filter-bar" style="margin-bottom: 1rem;">
+            <div class="filter-group">
+              <select id="tplTypeFilter" class="form-select" style="width: auto;">
+                <option value="">Semua Tipe Template</option>
+                <option value="GLOBAL">Template Global</option>
+                <option value="PRODUCT">Template Kategori Produk</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="white-space: nowrap;">Nama Template</th>
+                  <th style="white-space: nowrap;">Tipe / Kategori</th>
+                  <th>Isi Template (Pratinjau)</th>
+                  <th style="white-space: nowrap;">Status Default</th>
+                  <th style="text-align: right; white-space: nowrap;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="adminTplTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIWAYAT TRANSAKSI TAB -->
+      <div id="admin-transactions" class="admin-tab-content" style="display: none;">
+        <div class="filter-bar">
+          <div>
+            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Riwayat Transaksi</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Daftar seluruh riwayat pengiriman akun.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-group">
+              <input type="text" id="txSearch" class="form-input search-input"
+                placeholder="Cari WhatsApp / Customer...">
+              <select id="txMethodFilter" class="form-select" style="width: auto;">
+                <option value="">Semua Metode</option>
+                <option value="QUICK_ACCESS">QUICK_ACCESS</option>
+                <option value="INVENTORY">INVENTORY</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Produk</th>
+                  <th>WhatsApp Customer</th>
+                  <th>Metode</th>
+                  <th>Durasi</th>
+                  <th>Expired</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="adminTxTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOG AKTIVITAS TAB -->
+      <div id="admin-activity" class="admin-tab-content" style="display: none;">
+        <div style="margin-bottom: 1.5rem;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Log Aktivitas Sistem</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Catatan audit aktivitas admin dan sistem.</p>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Admin</th>
+                  <th>Aksi</th>
+                  <th>Target</th>
+                  <th>Deskripsi</th>
+                </tr>
+              </thead>
+              <tbody id="adminLogTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENGATURAN TAB -->
+      <div id="admin-settings" class="admin-tab-content" style="display: none;">
+        <div style="margin-bottom: 1.5rem;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Pengaturan Sistem</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Kelola informasi toko dan keamanan PIN admin.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+          <!-- General Store Info -->
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-title"><i data-lucide="store"></i> Informasi Toko</div>
+            <form id="settingsGeneralForm" class="form-group" style="gap: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">Nama Aplikasi Web</label>
+                <input type="text" id="setWebName" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nama Toko</label>
+                <input type="text" id="setShopName" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">WhatsApp Official Toko</label>
+                <input type="tel" id="setShopWa" class="form-input" inputmode="numeric" pattern="[0-9]*" required>
+              </div>
+              <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Informasi Toko</button>
+            </form>
+          </div>
+
+          <!-- Security Settings (Atur PIN Admin) -->
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-title"><i data-lucide="lock"></i> Keamanan Admin (PIN Masuk)</div>
+            <form id="settingsSecurityForm" class="form-group" style="gap: 0.85rem;">
+              <div class="form-group">
+                <label class="form-label">PIN Baru Admin (Angka, default: 2001)</label>
+                <input type="password" id="setNewPassword" class="form-input"
+                  placeholder="Masukkan PIN Baru (misal: 2001)" inputmode="numeric" pattern="[0-9]*" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Konfirmasi PIN Baru</label>
+                <input type="password" id="setConfirmPassword" class="form-input" placeholder="Ulangi PIN Baru"
+                  inputmode="numeric" pattern="[0-9]*" required>
+              </div>
+              <button type="submit" class="btn btn-danger"><i data-lucide="key-round"></i> Ubah PIN Admin</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- ADMIN LOGIN MODAL (WAJIB ISI PIN SETIAP KALI INGIN KE HALAMAN ADMIN) -->
+  <div id="adminLoginModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="shield-check"></i> Verifikasi PIN Admin</h3>
+        <button class="modal-close-btn" data-close="adminLoginModal">&times;</button>
+      </div>
+      <form id="adminLoginForm">
+        <!-- Banner Instruksi PIN Admin -->
+        <div
+          style="background: var(--accent-blue-bg); border: 1px solid rgba(37,99,235,0.25); padding: 0.75rem 0.9rem; border-radius: var(--radius-sm); margin-bottom: 1rem; text-align: center;">
+          <div
+            style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: var(--accent-primary); font-weight: 700; font-size: 0.88rem; margin-bottom: 0.2rem;">
+            <i data-lucide="lock" style="width: 16px; height: 16px;"></i> Instruksi Masukkan PIN
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Silakan masukkan <strong>PIN Keamanan Admin</strong>
+            untuk mengakses Halaman Admin.</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label">PIN Admin (Angka) <span style="color:var(--status-expired)">*</span></label>
+          <div class="input-wrapper">
+            <input type="password" id="loginPassword" class="form-input" placeholder="masukan PIN Admin"
+              inputmode="numeric" pattern="[0-9]*" autocomplete="off" required>
+            <button type="button" class="input-icon-btn toggle-password-btn" data-input="loginPassword">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="adminLoginModal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="log-in"></i> Masuk Admin</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT ACCOUNT MODAL (AKUN, DURASI, & CATATAN) -->
+  <div id="accountModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="accountModalTitle"><i data-lucide="key"></i> Tambah Akun Baru</h3>
+        <button class="modal-close-btn" data-close="accountModal">&times;</button>
+      </div>
+      <form id="accountForm">
+        <input type="hidden" id="accFormId">
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Kategori Produk <span style="color:var(--status-expired)">*</span></label>
+          <select id="accFormProduct" class="form-select" required></select>
+        </div>
+
+        <!-- TIPE AKSES DATA PRODUK (EMAIL & PASSWORD VS LINK / URL) -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Tipe Akses / Data Produk <span style="color:var(--status-expired)">*</span></label>
+          <select id="accFormAccessType" class="form-select">
+            <option value="ACCOUNT" selected>Email & Password (Akun Digital)</option>
+            <option value="LINK">Link / URL Akses (Undangan / Shared Link)</option>
+          </select>
+        </div>
+
+        <!-- GROUP EMAIL & PASSWORD -->
+        <div id="accEmailPasswordGroup">
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label">Email / Username <span style="color:var(--status-expired)">*</span></label>
+            <input type="text" id="accFormUsername" class="form-input" placeholder="e.g. customer@gmail.com">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label">Password <span style="color:var(--status-expired)">*</span></label>
+            <input type="text" id="accFormPassword" class="form-input" placeholder="Masukkan password">
+          </div>
+        </div>
+
+        <!-- GROUP LINK / URL AKSES -->
+        <div id="accLinkGroup" style="display: none;">
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label">Link / URL Akses <span style="color:var(--status-expired)">*</span></label>
+            <input type="url" id="accFormLink" class="form-input" placeholder="https://canva.com/brand/join?invite=...">
+          </div>
+        </div>
+
+        <!-- PENGATURAN DURASI AKUN (DEFAULT KOSONG & WAJIB DIISI) -->
+        <div class="form-group"
+          style="margin-bottom: 0.85rem; background: var(--bg-surface-hover); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <label class="form-label" style="color: var(--accent-primary); font-weight: 700; margin-bottom: 0.4rem;">
+            <i data-lucide="clock" style="width: 15px; height: 15px; vertical-align: middle;"></i> Durasi Akun <span
+              style="color:var(--status-expired)">*</span>
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+            <div class="form-group">
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Angka Durasi</span>
+              <input type="number" id="accFormDuration" class="form-input" placeholder="Masukan angka" value="" min="1"
+                required>
+            </div>
+            <div class="form-group">
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Satuan Waktu</span>
+              <select id="accFormUnit" class="form-select" required>
+                <option value="" disabled selected>-- Pilih Satuan --</option>
+                <option value="Hari">Hari</option>
+                <option value="Minggu">Minggu</option>
+                <option value="Bulan">Bulan</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- CATATAN / INFO TAMBAHAN CHAT (DIATUR DI HALAMAN TAMBAH AKUN) -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Catatan / Info Tambahan Chat <span
+              style="font-size:0.72rem; color:var(--text-muted); font-weight:normal;">(Opsional, e.g. Profile 1 PIN
+              1234)</span></label>
+          <input type="text" id="accFormNotes" class="form-input"
+            placeholder="e.g. Profile 1 PIN 1234 / Ketentuan Garansi">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="accountModal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Akun</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT PRODUCT MODAL (HANYA KATEGORI & STATUS PRODUK) -->
+  <div id="productModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="productModalTitle"><i data-lucide="package"></i> Tambah Kategori Produk</h3>
+        <button class="modal-close-btn" data-close="productModal">&times;</button>
+      </div>
+      <form id="productForm">
+        <input type="hidden" id="prodFormId">
+
+        <!-- Nama Kategori Produk -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Nama Kategori Produk <span style="color:var(--status-expired)">*</span></label>
+          <input type="text" id="prodFormName" class="form-input" placeholder="e.g. Netflix Premium, Canva Pro"
+            required>
+        </div>
+
+        <!-- Status Produk -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Status Produk</label>
+          <select id="prodFormStatus" class="form-select">
+            <option value="Aktif" selected>Aktif</option>
+            <option value="Tidak Aktif">Tidak Aktif</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="productModal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Produk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SEND INVENTORY MODAL -->
+  <div id="inventorySendModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="send"></i> Kirim Akun ke Customer</h3>
+        <button class="modal-close-btn" data-close="inventorySendModal">&times;</button>
+      </div>
+      <form id="inventorySendForm">
+        <input type="hidden" id="invSendAccId">
+
+        <div class="form-group"
+          style="margin-bottom: 1rem; background: var(--bg-surface-hover); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Akun yang Dipilih:</span>
+          <div id="invSendAccDetails" style="font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">-</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">No. WhatsApp <span style="color:var(--status-expired)">*</span></label>
+          <input type="tel" id="invSendCustomerWa" class="form-input" placeholder="Masukan nomor" inputmode="numeric"
+            pattern="[0-9]*" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="inventorySendModal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="copy"></i> Salin & Kirim WhatsApp</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SENT MESSAGE PREVIEW RESULT MODAL ("Akun Berhasil Dikirim!") -->
+  <div id="sentMessageModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--status-available);">
+          <i data-lucide="check-circle-2"></i> Akun Berhasil Dikirim!
+        </h3>
+        <button class="modal-close-btn" data-close="sentMessageModal">&times;</button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        Pesan otomatis di bawah ini telah disalin ke clipboard Anda. Anda dapat langsung mengirimkannya ke WhatsApp
+        Customer.
+      </p>
+
+      <div
+        style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; max-height: 220px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.82rem; color: var(--text-main);"
+        id="sentMessageOutput">
+        <!-- Compiled WhatsApp Message -->
+      </div>
+
+      <div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: space-between; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" id="resendCopyBtn"><i data-lucide="copy"></i> Salin
+          Pesan</button>
+        <a id="sentMessageWaBtn" target="_blank" rel="noopener noreferrer" class="btn btn-success"><i
+            data-lucide="message-circle"></i> Buka WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT TEMPLATE MODAL -->
+  <div id="templateModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="templateModalTitle"><i data-lucide="file-text"></i> Tambah Template Pesan</h3>
+        <button class="modal-close-btn" data-close="templateModal">&times;</button>
+      </div>
+      <form id="templateForm">
+        <input type="hidden" id="tplFormId">
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Nama Template <span style="color:var(--status-expired)">*</span></label>
+          <input type="text" id="tplFormName" class="form-input" placeholder="e.g. Template WhatsApp Standard" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div class="form-group">
+            <label class="form-label">Tipe Template</label>
+            <select id="tplFormType" class="form-select">
+              <option value="GLOBAL">Global (Semua Produk)</option>
+              <option value="PRODUCT">Kategori Produk Spesifik</option>
+            </select>
+          </div>
+          <div class="form-group" id="tplFormProductGroup" style="display: none;">
+            <label class="form-label">Pilih Produk</label>
+            <select id="tplFormProductId" class="form-select"></select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Isi Template Pesan <span style="color:var(--status-expired)">*</span></label>
+          <textarea id="tplFormContent" class="form-textarea" rows="6" placeholder="Tulis isi template pesan di sini..."
+            required></textarea>
+
+          <div style="margin-top: 0.4rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Klik tag variabel untuk
+              memasukkan:</span>
+            <div class="tag-pills" id="templateTagPills">
+              <span class="tag-pill" data-tag="{{product}}">{{product}}</span>
+              <span class="tag-pill" data-tag="{{email/link}}">{{email/link}}</span>
+              <span class="tag-pill" data-tag="{{password}}">{{password}}</span>
+              <span class="tag-pill" data-tag="{{duration}}">{{duration}}</span>
+              <span class="tag-pill" data-tag="{{duration_unit}}">{{duration_unit}}</span>
+              <span class="tag-pill" data-tag="{{sent_date}}">{{sent_date}}</span>
+              <span class="tag-pill" data-tag="{{expires_date}}">{{expires_date}}</span>
+              <span class="tag-pill" data-tag="{{notes}}">{{notes}}</span>
+              <span class="tag-pill" data-tag="{{catatan}}">{{catatan}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="previewTemplateInModalBtn"><i data-lucide="eye"></i>
+            Pratinjau</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Template</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TEMPLATE PREVIEW MODAL -->
+  <div id="templatePreviewModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="eye"></i> Pratinjau Template Pesan</h3>
+        <button class="modal-close-btn" data-close="templatePreviewModal">&times;</button>
+      </div>
+      <div
+        style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); white-space: pre-wrap; font-family: monospace; font-size: 0.85rem;"
+        id="templatePreviewOutput"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="templatePreviewModal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET / CANCEL SEND ACCOUNT CONFIRMATION MODAL -->
+  <div id="resetAccountModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--status-warning);"><i data-lucide="alert-triangle"></i> Konfirmasi
+          Reset Stok</h3>
+        <button class="modal-close-btn" data-close="resetAccountModal">&times;</button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Apakah Anda yakin ingin membatalkan pengiriman dan mengembalikan status akun ini menjadi
+        <strong>TERSEDIA</strong>?
+      </p>
+      <input type="hidden" id="resetAccId">
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="resetAccountModal">Batal</button>
+        <button type="button" class="btn btn-primary" id="confirmResetAccBtn"><i data-lucide="rotate-ccw"></i> Ya, Reset
+          Stok</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--status-expired);"><i data-lucide="trash-2"></i> Konfirmasi Hapus
+          Data</h3>
+        <button class="modal-close-btn" data-close="deleteConfirmModal">&times;</button>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+      </p>
+      <input type="hidden" id="deleteTargetType">
+      <input type="hidden" id="deleteTargetId">
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="deleteConfirmModal">Batal</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn"><i data-lucide="trash-2"></i> Ya,
+          Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
