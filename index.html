@@ -167,15 +167,18 @@
             <i data-lucide="boxes" style="color: var(--status-available);"></i> Stok Ready (Tersedia)
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+          <!-- KATEGORI PRODUK FILTER & TOMBOL RINGKAS SEJAJAR -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <!-- Filter Berdasarkan Kategori Produk -->
             <select id="salesHubProductFilter" class="form-select"
-              style="padding: 0.35rem 0.65rem; font-size: 0.85rem; width: auto;">
-              <option value="">Semua Kategori Produk</option>
+              style="padding: 0.35rem 0.65rem; font-size: 0.82rem; height: 34px; width: auto; max-width: 170px; cursor: pointer; border-radius: var(--radius-sm);">
+              <option value="">Semua Kategori</option>
             </select>
 
-            <a class="btn btn-secondary btn-sm" data-view="inventory-view">
-              Lihat Semua Inventory <i data-lucide="arrow-right"></i>
+            <!-- Tombol Ringkas ke Inventory -->
+            <a class="btn btn-secondary btn-sm" data-view="inventory-view"
+              style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; white-space: nowrap; border-radius: var(--radius-sm);">
+              Lihat Semua <i data-lucide="arrow-right" style="width: 13px; height: 13px;"></i>
             </a>
           </div>
         </div>
@@ -303,8 +306,10 @@
         <div class="dashboard-header"
           style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
           <div>
-            <h2 class="dash-title" style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800;">Dashboard Admin</h2>
-            <p class="dash-subtitle" style="color: var(--text-muted); font-size: 0.85rem;">Ringkasan aktivitas inventaris dan status akun.</p>
+            <h2 class="dash-title" style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800;">
+              Dashboard Admin</h2>
+            <p class="dash-subtitle" style="color: var(--text-muted); font-size: 0.85rem;">Ringkasan aktivitas
+              inventaris dan status akun.</p>
           </div>
           <button id="dashDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
             style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
@@ -386,7 +391,8 @@
           <div id="expiredAccountsContainer"></div>
         </div>
 
-        <div class="dashboard-charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+        <div class="dashboard-charts-grid"
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
           <!-- Chart Presentase Stok Produk -->
           <div class="card">
             <div class="card-title"><i data-lucide="pie-chart"></i> Persentase Stok Produk</div>

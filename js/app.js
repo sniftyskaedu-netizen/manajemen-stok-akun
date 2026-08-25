@@ -767,7 +767,7 @@ class AccExpressApp {
     const shFilter = document.getElementById('salesHubProductFilter');
     if (shFilter) {
       const currentVal = shFilter.value;
-      shFilter.innerHTML = '<option value="">Semua Kategori Produk</option>' +
+      shFilter.innerHTML = '<option value="">Semua Kategori</option>' +
         allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       shFilter.value = currentVal;
     }

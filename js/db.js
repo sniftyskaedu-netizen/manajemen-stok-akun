@@ -258,13 +258,13 @@ class AccExpressDB {
       }
     }
 
+    const cleanData = { ...productData };
+    delete cleanData.id;
+
     const newProd = {
-      id: 'prod_' + Math.random().toString(36).substr(2, 7),
-      name: productData.name,
-      description: productData.description || '',
-      default_duration: productData.default_duration ? Number(productData.default_duration) : 30,
-      duration_unit: productData.duration_unit || 'Hari',
-      status: productData.status || 'Aktif',
+      id: this._generateId(),
+      ...cleanData,
+      status: cleanData.status || 'Aktif',
       created_at: new Date().toISOString()
     };
     products.unshift(newProd);
@@ -357,7 +357,9 @@ class AccExpressDB {
       accounts[idx].expires_at = null;
       accounts[idx].updated_at = new Date().toISOString();
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      return accounts[idx];
     }
+    return null;
   }
 
   // --- Templates CRUD ---
@@ -365,43 +367,45 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.TEMPLATES);
   }
 
-  getTemplateForProduct(productId) {
-    const templates = this.getTemplates();
-    if (productId) {
-      const prodTpl = templates.find(t => t.type === 'PRODUCT' && t.product_id === productId);
-      if (prodTpl) return prodTpl;
-    }
-    const defaultTpl = templates.find(t => t.is_default);
-    if (defaultTpl) return defaultTpl;
-    return templates[0] || null;
+  getDefaultTemplate() {
+    const tpls = this.getTemplates();
+    return tpls.find(t => t.is_default) || tpls[0] || null;
   }
 
-  saveTemplate(tplData) {
-    const templates = this.getTemplates();
+  getTemplateForProduct(productId) {
+    const tpls = this.getTemplates();
+    if (productId) {
+      const prodTpl = tpls.find(t => t.type === 'PRODUCT' && t.product_id === productId);
+      if (prodTpl) return prodTpl;
+    }
+    return this.getDefaultTemplate();
+  }
 
-    if (tplData.id && String(tplData.id).trim() !== '') {
-      const idx = templates.findIndex(t => t.id === tplData.id);
+  saveTemplate(templateData) {
+    let templates = this.getTemplates();
+
+    if (templateData.is_default) {
+      templates.forEach(t => t.is_default = false);
+    }
+
+    if (templateData.id && String(templateData.id).trim() !== '') {
+      const idx = templates.findIndex(t => t.id === templateData.id);
       if (idx !== -1) {
-        templates[idx] = { ...templates[idx], ...tplData, updated_at: new Date().toISOString() };
+        templates[idx] = { ...templates[idx], ...templateData, updated_at: new Date().toISOString() };
         this._set(this.STORAGE_KEYS.TEMPLATES, templates);
         return templates[idx];
       }
     }
 
+    const cleanData = { ...templateData };
+    delete cleanData.id;
+
     const newTpl = {
-      id: 'tpl_' + Math.random().toString(36).substr(2, 7),
-      name: tplData.name,
-      type: tplData.type || 'GLOBAL',
-      product_id: tplData.product_id || '',
-      content: tplData.content || '',
-      is_default: Boolean(tplData.is_default),
+      id: this._generateId(),
+      ...cleanData,
+      is_default: cleanData.is_default || templates.length === 0,
       created_at: new Date().toISOString()
     };
-
-    if (templates.length === 0) {
-      newTpl.is_default = true;
-    }
-
     templates.unshift(newTpl);
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
     return newTpl;
@@ -417,33 +421,31 @@ class AccExpressDB {
 
   deleteTemplate(id) {
     const templates = this.getTemplates().filter(t => t.id !== id);
-    if (templates.length > 0 && !templates.some(t => t.is_default)) {
-      templates[0].is_default = true;
-    }
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
   }
 
-  // --- Transactions Log ---
+  // --- Transactions ---
   getTransactions() {
     return this._get(this.STORAGE_KEYS.TRANSACTIONS);
   }
 
   addTransaction(txData) {
-    const txs = this.getTransactions();
+    const transactions = this.getTransactions();
     const newTx = {
-      id: 'tx_' + Math.random().toString(36).substr(2, 7) + '_' + Date.now(),
+      id: this._generateId(),
       account_id: txData.account_id,
       product_id: txData.product_id,
       customer_whatsapp: txData.customer_whatsapp,
-      delivery_method: txData.delivery_method || 'QUICK_ACCESS',
+      delivery_method: txData.delivery_method,
       duration: txData.duration,
       duration_unit: txData.duration_unit,
       sent_at: txData.sent_at || new Date().toISOString(),
       expires_at: txData.expires_at,
-      status: txData.status || 'TERKIRIM'
+      status: txData.status || 'TERKIRIM',
+      created_at: new Date().toISOString()
     };
-    txs.unshift(newTx);
-    this._set(this.STORAGE_KEYS.TRANSACTIONS, txs);
+    transactions.unshift(newTx);
+    this._set(this.STORAGE_KEYS.TRANSACTIONS, transactions);
     return newTx;
   }
 
@@ -452,67 +454,55 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.ACTIVITY_LOGS);
   }
 
-  addActivityLog(adminId, action, targetType, description, targetId = null) {
+  addActivityLog(adminId, action, targetType, description, targetId = '') {
     const logs = this.getActivityLogs();
     const newLog = {
-      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      admin_id: adminId || 'system',
-      action: action,
+      id: this._generateId(),
+      admin_id: adminId || 'admin',
+      action,
       target_type: targetType,
       target_id: targetId,
-      description: description,
+      description,
       created_at: new Date().toISOString()
     };
     logs.unshift(newLog);
-    this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, logs.slice(0, 100));
+    this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, logs);
+    return newLog;
   }
 
-  // --- Admin Auth ---
-  async verifyAdmin(username, password) {
-    const users = this._get(this.STORAGE_KEYS.ADMIN_USERS);
-    const user = users.find(u => u.username === username);
-    if (!user) {
-      const settings = this.getSettings();
-      if (settings && settings.admin_pin && password === settings.admin_pin) {
-        return true;
-      }
-      return false;
-    }
-    const hash = await CryptoUtil.hashPassword(password);
-    return user.password_hash === hash;
-  }
-
-  async updateAdminPassword(username, newPassword) {
-    const users = this._get(this.STORAGE_KEYS.ADMIN_USERS);
-    const user = users.find(u => u.username === username);
-    const newHash = await CryptoUtil.hashPassword(newPassword);
-
-    if (user) {
-      user.password_hash = newHash;
-      this._set(this.STORAGE_KEYS.ADMIN_USERS, users);
-    } else {
-      users.push({
-        id: 'admin_' + Date.now(),
-        username: username,
-        password_hash: newHash,
-        role: 'SUPER_ADMIN',
-        created_at: new Date().toISOString()
-      });
-      this._set(this.STORAGE_KEYS.ADMIN_USERS, users);
-    }
-
+  // --- OTENTIKASI PIN ADMIN (DEFAULT: 2001) ---
+  getAdminPin() {
     const settings = this.getSettings();
-    settings.admin_pin = newPassword;
+    return settings.admin_pin || '2001';
+  }
+
+  async verifyAdmin(username, pinInput) {
+    const activePin = this.getAdminPin();
+    const cleanInput = String(pinInput || '').trim();
+    // PIN VERIFIKASI STRICT DENGAN PIN UTAMA YANG AKTIF!
+    return cleanInput === activePin;
+  }
+
+  async updateAdminPassword(username, newPin) {
+    const cleanPin = String(newPin || '2001').trim();
+    const settings = this.getSettings();
+    settings.admin_pin = cleanPin;
     this.saveSettings(settings);
+
+    let adminUsers = this._get(this.STORAGE_KEYS.ADMIN_USERS);
+    if (adminUsers.length > 0) {
+      adminUsers[0].password_hash = await CryptoUtil.hashPassword(cleanPin);
+      this._set(this.STORAGE_KEYS.ADMIN_USERS, adminUsers);
+    }
+    return true;
   }
 
   // --- Settings ---
   getSettings() {
-    const raw = localStorage.getItem(this.STORAGE_KEYS.SETTINGS);
-    if (raw) return JSON.parse(raw);
-    return {
+    const data = localStorage.getItem(this.STORAGE_KEYS.SETTINGS);
+    return data ? JSON.parse(data) : {
       web_name: 'AccExpress Seller Hub',
-      shop_name: 'AccExpress Digital Store',
+      shop_name: 'AccExpress Store',
       shop_whatsapp: '081234567890',
       admin_pin: '2001',
       timezone: 'Asia/Jakarta (UTC+7)'
