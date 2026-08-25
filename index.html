@@ -211,22 +211,34 @@
 
         <!-- Filter & Search Controls -->
         <div class="filter-bar">
-          <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <input type="text" id="invSearchInput" class="form-input search-input" placeholder="Cari email / produk...">
-            <select id="invProductFilter" class="form-select" style="width: auto;">
-              <option value="">Semua Produk</option>
-            </select>
-            <select id="invStatusFilter" class="form-select" style="width: auto;">
-              <option value="">Semua Status</option>
-              <option value="TERSEDIA">TERSEDIA</option>
-              <option value="TERKIRIM">TERKIRIM</option>
-              <option value="EXPIRED">EXPIRED</option>
-            </select>
-            <button id="refreshInventoryBtn" class="form-select"
-              style="width: auto; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; font-weight: 600;"
-              title="Refresh Stok">
-              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
-            </button>
+          <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+            <input type="text" id="invSearchInput" class="form-input search-input" placeholder="Cari email / produk..."
+              style="height: 36px; padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: var(--radius-sm); min-width: 180px; flex: 1;">
+
+            <!-- GROUP SEJAJAR KESAMPING: FILTER PRODUK, FILTER STATUS, & TOMBOL REFRESH -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; flex-shrink: 0;">
+              <!-- Filter Kategori Produk -->
+              <select id="invProductFilter" class="form-select"
+                style="width: auto; height: 36px; padding: 0.4rem 0.65rem; font-size: 0.85rem; border-radius: var(--radius-sm); cursor: pointer;">
+                <option value="">Semua Produk</option>
+              </select>
+
+              <!-- Filter Status -->
+              <select id="invStatusFilter" class="form-select"
+                style="width: auto; height: 36px; padding: 0.4rem 0.65rem; font-size: 0.85rem; border-radius: var(--radius-sm); cursor: pointer;">
+                <option value="">Semua Status</option>
+                <option value="TERSEDIA">TERSEDIA</option>
+                <option value="TERKIRIM">TERKIRIM</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </select>
+
+              <!-- Tombol Refresh Pure Icon (Kotak Presisi 36x36px) -->
+              <button id="refreshInventoryBtn" class="btn btn-secondary"
+                style="width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer; flex-shrink: 0;"
+                title="Refresh Stok Inventory">
+                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
           </div>
         </div>
 
