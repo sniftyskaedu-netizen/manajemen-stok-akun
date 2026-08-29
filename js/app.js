@@ -19,9 +19,25 @@ class AccExpressApp {
     this.renderInventoryTable();
     this.renderSalesHubInventory();
     this.updateAdminAuthState();
+    this.restoreSavedViewState();
 
     if (window.lucide) {
       window.lucide.createIcons();
+    }
+  }
+
+  // --- RESTORE VIEW STATE ON REFRESH ---
+  restoreSavedViewState() {
+    const savedView = sessionStorage.getItem('accexpress_current_view');
+    const savedAdminTab = sessionStorage.getItem('accexpress_admin_tab');
+
+    if (this.currentAdmin && savedView === 'adminView') {
+      this.showAdminPanel(savedAdminTab || 'admin-dashboard');
+    } else if (savedView && savedView !== 'adminView') {
+      const navLink = document.querySelector(`.nav-link[data-view="${savedView}"]`);
+      if (navLink) {
+        navLink.click();
+      }
     }
   }
 
@@ -572,6 +588,7 @@ class AccExpressApp {
     document.querySelectorAll('.sidebar-item[data-tab]').forEach(item => {
       item.addEventListener('click', (e) => {
         const targetTab = e.currentTarget.getAttribute('data-tab');
+        sessionStorage.setItem('accexpress_admin_tab', targetTab);
         document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
         e.currentTarget.classList.add('active');
 
@@ -622,6 +639,8 @@ class AccExpressApp {
 
   // --- RETURN TO SALES HUB ---
   returnToSalesHub() {
+    sessionStorage.setItem('accexpress_current_view', 'sales-hub-view');
+    sessionStorage.removeItem('accexpress_admin_tab');
     const adminView = document.getElementById('adminView');
     const publicView = document.getElementById('publicView');
     if (adminView && publicView) {
@@ -636,6 +655,8 @@ class AccExpressApp {
   // --- LOGOUT ADMIN ---
   logoutAdmin() {
     sessionStorage.removeItem('accexpress_admin');
+    sessionStorage.removeItem('accexpress_current_view');
+    sessionStorage.removeItem('accexpress_admin_tab');
     this.currentAdmin = null;
     db.addActivityLog('admin', 'Admin Logout', 'sistem', 'Admin telah keluar dari sistem');
     this.returnToSalesHub();
@@ -684,31 +705,41 @@ class AccExpressApp {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  showAdminPanel() {
+  showAdminPanel(targetTab) {
     const adminView = document.getElementById('adminView');
     const publicView = document.getElementById('publicView');
     if (adminView && publicView) {
       publicView.style.display = 'none';
       adminView.style.display = 'flex';
+      sessionStorage.setItem('accexpress_current_view', 'adminView');
       this.updateAdminAuthState();
 
-      // Reset menu sidebar & konten ke tab Dashboard
+      const activeTab = targetTab || sessionStorage.getItem('accexpress_admin_tab') || 'admin-dashboard';
+      sessionStorage.setItem('accexpress_admin_tab', activeTab);
+
+      // Reset menu sidebar & konten ke tab aktif
       document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-      const dashItem = document.querySelector('.sidebar-item[data-tab="admin-dashboard"]');
-      if (dashItem) dashItem.classList.add('active');
+      const activeSidebarItem = document.querySelector(`.sidebar-item[data-tab="${activeTab}"]`) || document.querySelector('.sidebar-item[data-tab="admin-dashboard"]');
+      if (activeSidebarItem) activeSidebarItem.classList.add('active');
 
       document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
-      const dashTab = document.getElementById('admin-dashboard');
-      if (dashTab) dashTab.style.display = 'block';
+      const activeTabContent = document.getElementById(activeTab) || document.getElementById('admin-dashboard');
+      if (activeTabContent) activeTabContent.style.display = 'block';
 
-      this.renderAdminDashboard();
+      if (activeTab === 'admin-dashboard') this.renderAdminDashboard();
+      if (activeTab === 'admin-accounts') this.renderAdminAccounts();
+      if (activeTab === 'admin-products') this.renderAdminProducts();
+      if (activeTab === 'admin-templates') this.renderAdminTemplates();
+      if (activeTab === 'admin-transactions') this.renderAdminTransactions();
+      if (activeTab === 'admin-activity') this.renderAdminLogs();
+      if (activeTab === 'admin-settings') this.renderAdminSettings();
 
-      // Pastikan layar selalu tergulung paling atas & langsung berfokus pada tombol menu Dashboard
+      // Pastikan layar selalu tergulung paling atas & langsung berfokus pada tombol menu aktif
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       const adminContent = document.querySelector('.admin-content');
       if (adminContent) adminContent.scrollTop = 0;
-      if (dashItem) {
-        dashItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (activeSidebarItem) {
+        activeSidebarItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
   }
@@ -724,6 +755,7 @@ class AccExpressApp {
         }
 
         e.preventDefault();
+        sessionStorage.setItem('accexpress_current_view', targetView);
         const adminView = document.getElementById('adminView');
         const publicView = document.getElementById('publicView');
         if (adminView && publicView && adminView.style.display !== 'none') {
@@ -1266,6 +1298,7 @@ class AccExpressApp {
     const verified = await db.verifyAdmin('admin', pin);
     if (verified) {
       sessionStorage.setItem('accexpress_admin', 'admin');
+      sessionStorage.setItem('accexpress_current_view', 'adminView');
       this.currentAdmin = 'admin';
       db.addActivityLog('admin', 'Admin Login', 'sistem', `Admin berhasil masuk`);
       this.showToast('✓ Verifikasi PIN Berhasil! Selamat datang Admin.', 'success');
