@@ -811,14 +811,25 @@ body:not(.dark-mode) .form-textarea:focus {
   color: var(--text-muted);
 }
 
-/* Dashboard Alert Cards (Akan Expired & Expired Accounts) */
+/* Dashboard Alert Cards (Akan Expired & Expired Accounts - Ultra Compact & Mobile Friendly) */
+.dashboard-alert-card {
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 0.75rem !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.dashboard-alert-card .card-title {
+  font-size: 0.92rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
 .dashboard-alert-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  max-height: 280px;
+  gap: 0.4rem;
+  max-height: 190px;
   overflow-y: auto;
-  padding-right: 0.35rem;
+  padding-right: 0.25rem;
   width: 100%;
 }
 
@@ -826,10 +837,10 @@ body:not(.dark-mode) .form-textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
-  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
   background: var(--bg-surface-hover);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   min-width: 0;
   transition: transform var(--transition-fast), border-color var(--transition-fast);
@@ -840,17 +851,17 @@ body:not(.dark-mode) .form-textarea:focus {
 }
 
 .dashboard-alert-item.warning {
-  border-left: 4px solid var(--status-warning);
+  border-left: 3.5px solid var(--status-warning);
 }
 
 .dashboard-alert-item.expired {
-  border-left: 4px solid var(--status-expired);
+  border-left: 3.5px solid var(--status-expired);
 }
 
 .dashboard-alert-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.1rem;
   min-width: 0;
   flex: 1;
 }
@@ -858,15 +869,16 @@ body:not(.dark-mode) .form-textarea:focus {
 .dashboard-alert-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--text-main);
   min-width: 0;
+  line-height: 1.2;
 }
 
 .dashboard-alert-account {
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   word-break: break-all;
   overflow: hidden;
@@ -874,21 +886,47 @@ body:not(.dark-mode) .form-textarea:focus {
   white-space: nowrap;
   max-width: 100%;
   font-family: monospace;
+  line-height: 1.2;
 }
 
 .dashboard-alert-meta {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-subtle);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  line-height: 1.2;
 }
 
 .dashboard-alert-badge-wrap {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+}
+
+.dashboard-alert-badge-wrap .badge {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .dashboard-alert-card {
+    padding: 0.65rem 0.75rem !important;
+  }
+  .dashboard-alert-item {
+    padding: 0.4rem 0.6rem;
+  }
+  .dashboard-alert-header {
+    font-size: 0.78rem;
+  }
+  .dashboard-alert-account {
+    font-size: 0.74rem;
+  }
+  .dashboard-alert-meta {
+    font-size: 0.68rem;
+    gap: 0.35rem;
+  }
 }
 
 /* Admin Sidebar Layout */
