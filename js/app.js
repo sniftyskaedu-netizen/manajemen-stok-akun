@@ -1345,19 +1345,28 @@ class AccExpressApp {
         expiringWrapper.style.display = 'none';
       } else {
         expiringWrapper.style.display = 'block';
-        let expHtml = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+        let expHtml = '<div class="dashboard-alert-list">';
         expiringSoonAccs.forEach(acc => {
           const prod = products.find(p => p.id === acc.product_id);
           const expDate = new Date(acc.expires_at);
           const hoursLeft = Math.max(1, Math.round((expDate - now) / (1000 * 60 * 60)));
+          const accVal = acc.link || acc.username_or_email || '';
 
           expHtml += `
-            <div class="activity-item" style="border-left: 3px solid var(--status-warning); padding: 0.5rem;">
-              <div>
-                <strong>${prod ? prod.name : 'Produk'}</strong> — ${acc.link || acc.username_or_email}
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Customer: ${acc.customer_whatsapp || '-'}</div>
+            <div class="dashboard-alert-item warning">
+              <div class="dashboard-alert-info">
+                <div class="dashboard-alert-header">
+                  <span>${prod ? prod.name : 'Produk'}</span>
+                </div>
+                <div class="dashboard-alert-account" title="${accVal}">${accVal}</div>
+                <div class="dashboard-alert-meta">
+                  <span>Customer: ${acc.customer_whatsapp || '-'}</span>
+                  <span>Expired Pada: ${TemplateEngine.formatDateIndo(acc.expires_at)}</span>
+                </div>
               </div>
-              <span class="badge badge-warning">Expired dlm ${hoursLeft} Jam</span>
+              <div class="dashboard-alert-badge-wrap">
+                <span class="badge badge-warning"><i data-lucide="clock" style="width:12px;height:12px;"></i> Expired dlm ${hoursLeft} Jam</span>
+              </div>
             </div>
           `;
         });
@@ -1374,32 +1383,30 @@ class AccExpressApp {
         expiredWrapper.style.display = 'none';
       } else {
         expiredWrapper.style.display = 'block';
-        let listHtml = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+        let listHtml = '<div class="dashboard-alert-list">';
         expiredAccs.forEach(acc => {
           const prod = products.find(p => p.id === acc.product_id);
+          const accVal = acc.link || acc.username_or_email || '';
           listHtml += `
-            <div class="activity-item" style="border-left: 4px solid var(--status-expired); background: var(--bg-surface-hover);">
-              <div>
-                <strong>${prod ? prod.name : 'Produk'}</strong> — ${acc.link || acc.username_or_email}
-                <div style="font-size: 0.78rem; color: var(--text-muted);">WA Customer: ${acc.customer_whatsapp || '-'} | Expired: ${TemplateEngine.formatDateIndo(acc.expires_at)}</div>
+            <div class="dashboard-alert-item expired">
+              <div class="dashboard-alert-info">
+                <div class="dashboard-alert-header">
+                  <span>${prod ? prod.name : 'Produk'}</span>
+                </div>
+                <div class="dashboard-alert-account" title="${accVal}">${accVal}</div>
+                <div class="dashboard-alert-meta">
+                  <span>Customer: ${acc.customer_whatsapp || '-'}</span>
+                  <span>Expired Pada: ${TemplateEngine.formatDateIndo(acc.expires_at)}</span>
+                </div>
               </div>
-              <div class="action-buttons-cell">
-                <span class="badge badge-expired">EXPIRED</span>
-                <button class="btn btn-secondary btn-xs reset-acc-btn" data-accid="${acc.id}"><i data-lucide="rotate-ccw"></i> Reset Stock</button>
+              <div class="dashboard-alert-badge-wrap">
+                <span class="badge badge-expired"><i data-lucide="x-circle" style="width:12px;height:12px;"></i> EXPIRED</span>
               </div>
             </div>
           `;
         });
         listHtml += '</div>';
         expiredListContainer.innerHTML = listHtml;
-
-        expiredListContainer.querySelectorAll('.reset-acc-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-accid');
-            document.getElementById('resetAccId').value = id;
-            this.openModal('resetAccountModal');
-          });
-        });
       }
       if (window.lucide) window.lucide.createIcons();
     }

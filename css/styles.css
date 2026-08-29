@@ -811,6 +811,86 @@ body:not(.dark-mode) .form-textarea:focus {
   color: var(--text-muted);
 }
 
+/* Dashboard Alert Cards (Akan Expired & Expired Accounts) */
+.dashboard-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  width: 100%;
+}
+
+.dashboard-alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface-hover);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  min-width: 0;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dashboard-alert-item:hover {
+  transform: translateX(2px);
+}
+
+.dashboard-alert-item.warning {
+  border-left: 4px solid var(--status-warning);
+}
+
+.dashboard-alert-item.expired {
+  border-left: 4px solid var(--status-expired);
+}
+
+.dashboard-alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  min-width: 0;
+}
+
+.dashboard-alert-account {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-family: monospace;
+}
+
+.dashboard-alert-meta {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-alert-badge-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
 /* Admin Sidebar Layout */
 .admin-layout {
   display: flex;
