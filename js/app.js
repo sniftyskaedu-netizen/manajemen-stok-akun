@@ -391,14 +391,14 @@ class AccExpressApp {
       await this.handleSaveAccount();
     });
 
-    document.getElementById('productForm')?.addEventListener('submit', (e) => {
+    document.getElementById('productForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      this.handleSaveProduct();
+      await this.handleSaveProduct();
     });
 
-    document.getElementById('templateForm')?.addEventListener('submit', (e) => {
+    document.getElementById('templateForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      this.handleSaveTemplate();
+      await this.handleSaveTemplate();
     });
 
     document.querySelectorAll('.tag-pills, #templateTagPills').forEach(container => {
@@ -478,28 +478,28 @@ class AccExpressApp {
       this.openModal('templatePreviewModal');
     });
 
-    document.getElementById('confirmDeleteBtn')?.addEventListener('click', () => {
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
       const type = document.getElementById('deleteTargetType').value;
       const id = document.getElementById('deleteTargetId').value;
 
       if (type === 'account') {
         const acc = db.getAccountById(id);
-        db.deleteAccount(id);
-        db.addActivityLog(this.currentAdmin, 'Akun Dihapus', 'akun', `Hapus data ${acc ? (acc.link || acc.username_or_email) : id}`, id);
+        await db.deleteAccount(id);
+        await db.addActivityLog(this.currentAdmin, 'Akun Dihapus', 'akun', `Hapus data ${acc ? (acc.link || acc.username_or_email) : id}`, id);
         this.showToast('Data berhasil dihapus.', 'info');
         this.renderAdminAccounts();
         this.renderInventoryTable();
         this.renderSalesHubInventory();
       } else if (type === 'product') {
         const prod = db.getProductById(id);
-        db.deleteProduct(id);
-        db.addActivityLog(this.currentAdmin, 'Produk Dihapus', 'produk', `Hapus produk ${prod ? prod.name : id}`, id);
+        await db.deleteProduct(id);
+        await db.addActivityLog(this.currentAdmin, 'Produk Dihapus', 'produk', `Hapus produk ${prod ? prod.name : id}`, id);
         this.showToast('Data produk berhasil dihapus.', 'info');
         this.renderAdminProducts();
         this.populateProductDropdowns();
       } else if (type === 'template') {
-        db.deleteTemplate(id);
-        db.addActivityLog(this.currentAdmin, 'Template Dihapus', 'template', `Hapus template ID ${id}`, id);
+        await db.deleteTemplate(id);
+        await db.addActivityLog(this.currentAdmin, 'Template Dihapus', 'template', `Hapus template ID ${id}`, id);
         this.showToast('Template pesan berhasil dihapus.', 'info');
         this.renderAdminTemplates();
       }
@@ -507,19 +507,19 @@ class AccExpressApp {
     });
 
     // PENGATURAN INFORMASI TOKO & WEB
-    document.getElementById('settingsGeneralForm')?.addEventListener('submit', (e) => {
+    document.getElementById('settingsGeneralForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const wName = document.getElementById('setWebName').value.trim();
       const sName = document.getElementById('setShopName').value.trim();
       const sWa = document.getElementById('setShopWa').value.trim();
 
-      db.saveSettings({
+      await db.saveSettings({
         web_name: wName,
         shop_name: sName,
         shop_whatsapp: sWa
       });
 
-      db.addActivityLog(this.currentAdmin || 'admin', 'Pengaturan Diperbarui', 'sistem', `Mengubah informasi web ke "${wName}" dan toko ke "${sName}"`);
+      await db.addActivityLog(this.currentAdmin || 'admin', 'Pengaturan Diperbarui', 'sistem', `Mengubah informasi web ke "${wName}" dan toko ke "${sName}"`);
       this.applySettingsToUI();
       this.showToast('✓ Pengaturan toko & web berhasil disimpan dan diterapkan!', 'success');
     });
@@ -1705,7 +1705,7 @@ class AccExpressApp {
   }
 
   // --- SAVE PRODUCT HANDLER ---
-  handleSaveProduct() {
+  async handleSaveProduct() {
     const id = document.getElementById('prodFormId').value;
     const name = document.getElementById('prodFormName').value.trim();
     const status = document.getElementById('prodFormStatus').value;
@@ -1715,13 +1715,13 @@ class AccExpressApp {
       return;
     }
 
-    const saved = db.saveProduct({
+    const saved = await db.saveProduct({
       id: id || undefined,
       name,
       status: status
     });
 
-    db.addActivityLog(this.currentAdmin, id ? 'Produk Diperbarui' : 'Produk Dibuat', 'produk', `${id ? 'Update' : 'Tambah'} kategori ${name}`, saved.id);
+    await db.addActivityLog(this.currentAdmin, id ? 'Produk Diperbarui' : 'Produk Dibuat', 'produk', `${id ? 'Update' : 'Tambah'} kategori ${name}`, saved.id);
     this.showToast(`✓ Kategori Produk ${name} berhasil ${id ? 'diperbarui' : 'ditambahkan'}.`, 'success');
     this.closeModal('productModal');
     this.renderAdminProducts();
@@ -1865,7 +1865,7 @@ class AccExpressApp {
     });
   }
 
-  handleSaveTemplate() {
+  async handleSaveTemplate() {
     const id = document.getElementById('tplFormId').value;
     const name = document.getElementById('tplFormName').value.trim();
     const type = document.getElementById('tplFormType').value;
@@ -1877,7 +1877,7 @@ class AccExpressApp {
       return;
     }
 
-    const saved = db.saveTemplate({
+    const saved = await db.saveTemplate({
       id: id || undefined,
       name,
       type,
@@ -1885,7 +1885,7 @@ class AccExpressApp {
       content
     });
 
-    db.addActivityLog(this.currentAdmin, id ? 'Template Diperbarui' : 'Template Dibuat', 'template', `${id ? 'Update' : 'Tambah'} template ${name}`, saved.id);
+    await db.addActivityLog(this.currentAdmin, id ? 'Template Diperbarui' : 'Template Dibuat', 'template', `${id ? 'Update' : 'Tambah'} template ${name}`, saved.id);
     this.showToast(`✓ Template berhasil ${id ? 'diperbarui' : 'ditambahkan'}.`, 'success');
     this.closeModal('templateModal');
     this.renderAdminTemplates();

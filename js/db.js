@@ -1,7 +1,13 @@
 import { CryptoUtil } from './crypto.js';
+import {
+  fetchAllFromSupabase,
+  upsertToSupabase,
+  deleteFromSupabase,
+  SUPABASE_TABLES
+} from './supabase.js';
 
 /**
- * AccExpress Database Engine & Persistence Manager
+ * AccExpress Database Engine & Persistence Manager (Supabase + Local Cache)
  */
 class AccExpressDB {
   constructor() {
@@ -17,10 +23,59 @@ class AccExpressDB {
   }
 
   async init() {
+    // 1. Sync data dari database Cloud Supabase
+    await this.syncFromSupabase();
+
+    // 2. Jika data lokal / Supabase masih kosong, jalankan seeding awal
     if (!localStorage.getItem(this.STORAGE_KEYS.ADMIN_USERS)) {
       await this.seedInitialData();
     }
-    this.updateAutomaticExpirations();
+    
+    // 3. Update status akun expired secara otomatis
+    await this.updateAutomaticExpirations();
+  }
+
+  // --- Remote Cloud Sync Methods ---
+  async syncFromSupabase() {
+    try {
+      const [remoteProducts, remoteAccounts, remoteTemplates, remoteTx, remoteLogs, remoteSettings, remoteAdmin] = await Promise.all([
+        fetchAllFromSupabase(SUPABASE_TABLES.PRODUCTS),
+        fetchAllFromSupabase(SUPABASE_TABLES.ACCOUNTS),
+        fetchAllFromSupabase(SUPABASE_TABLES.TEMPLATES),
+        fetchAllFromSupabase(SUPABASE_TABLES.TRANSACTIONS),
+        fetchAllFromSupabase(SUPABASE_TABLES.ACTIVITY_LOGS),
+        fetchAllFromSupabase(SUPABASE_TABLES.SETTINGS),
+        fetchAllFromSupabase(SUPABASE_TABLES.ADMIN_USERS)
+      ]);
+
+      if (remoteProducts && remoteProducts.length > 0) {
+        this._set(this.STORAGE_KEYS.PRODUCTS, remoteProducts);
+      }
+      if (remoteAccounts && remoteAccounts.length > 0) {
+        this._set(this.STORAGE_KEYS.ACCOUNTS, remoteAccounts);
+      }
+      if (remoteTemplates && remoteTemplates.length > 0) {
+        this._set(this.STORAGE_KEYS.TEMPLATES, remoteTemplates);
+      }
+      if (remoteTx && remoteTx.length > 0) {
+        this._set(this.STORAGE_KEYS.TRANSACTIONS, remoteTx);
+      }
+      if (remoteLogs && remoteLogs.length > 0) {
+        this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, remoteLogs);
+      }
+      if (remoteAdmin && remoteAdmin.length > 0) {
+        this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
+      }
+      if (remoteSettings && remoteSettings.length > 0) {
+        const settingsRecord = remoteSettings.find(s => s.id === 'main_settings') || remoteSettings[0];
+        if (settingsRecord) {
+          const { id, ...cleanSettings } = settingsRecord;
+          localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(cleanSettings));
+        }
+      }
+    } catch (e) {
+      console.warn('[Supabase Sync Warning] Could not sync from Supabase DB on init:', e);
+    }
   }
 
   // --- Utility Storage Methods ---
@@ -38,23 +93,24 @@ class AccExpressDB {
   }
 
   // --- Automatic Expiration Updater ---
-  updateAutomaticExpirations() {
+  async updateAutomaticExpirations() {
     const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
     const now = new Date();
-    let updated = false;
+    let updatedAccs = [];
 
     accounts.forEach(acc => {
       if (acc.status === 'TERKIRIM' && acc.expires_at) {
         const expDate = new Date(acc.expires_at);
         if (now >= expDate) {
           acc.status = 'EXPIRED';
-          updated = true;
+          updatedAccs.push(acc);
         }
       }
     });
 
-    if (updated) {
+    if (updatedAccs.length > 0) {
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, updatedAccs);
     }
   }
 
@@ -70,6 +126,7 @@ class AccExpressDB {
       created_at: new Date().toISOString()
     }];
     this._set(this.STORAGE_KEYS.ADMIN_USERS, adminUsers);
+    await upsertToSupabase(SUPABASE_TABLES.ADMIN_USERS, adminUsers);
 
     // 2. Default Products
     const products = [
@@ -120,11 +177,11 @@ class AccExpressDB {
       }
     ];
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
+    await upsertToSupabase(SUPABASE_TABLES.PRODUCTS, products);
 
     // 3. Encrypted Sample Accounts
     const encPass1 = await CryptoUtil.encrypt('passNetflix123!');
     const encPass2 = await CryptoUtil.encrypt('spotifySecret456');
-    const encPass3 = await CryptoUtil.encrypt('canvaPro999#');
     const encPass4 = await CryptoUtil.encrypt('ytPremium777');
 
     const accounts = [
@@ -194,6 +251,7 @@ class AccExpressDB {
       }
     ];
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+    await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts);
 
     // 4. Default WhatsApp Message Template
     const templates = [
@@ -217,19 +275,23 @@ class AccExpressDB {
       }
     ];
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
+    await upsertToSupabase(SUPABASE_TABLES.TEMPLATES, templates);
 
     // 5. Initial Settings
     const settings = {
+      id: 'main_settings',
       web_name: 'AccExpress Seller Hub',
       shop_name: 'AccExpress Digital Store',
       shop_whatsapp: '081234567890',
       admin_pin: '2001',
-      timezone: 'Asia/Jakarta (UTC+7)'
+      timezone: 'Asia/Jakarta (UTC+7)',
+      updated_at: new Date().toISOString()
     };
     localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    await upsertToSupabase(SUPABASE_TABLES.SETTINGS, settings);
 
     // 6. Activity Log Initial
-    this.addActivityLog('system', 'System Seed', 'system', 'Database successfully initialized with seed data');
+    await this.addActivityLog('system', 'System Seed', 'system', 'Database successfully initialized with Supabase seed data');
   }
 
   // --- Products CRUD ---
@@ -246,35 +308,41 @@ class AccExpressDB {
     return this.getProducts().find(p => p.id === id);
   }
 
-  saveProduct(productData) {
+  async saveProduct(productData) {
     const products = this.getProducts();
+    let savedProd = null;
 
     if (productData.id && String(productData.id).trim() !== '') {
       const idx = products.findIndex(p => p.id === productData.id);
       if (idx !== -1) {
         products[idx] = { ...products[idx], ...productData, updated_at: new Date().toISOString() };
-        this._set(this.STORAGE_KEYS.PRODUCTS, products);
-        return products[idx];
+        savedProd = products[idx];
       }
     }
 
-    const cleanData = { ...productData };
-    delete cleanData.id;
+    if (!savedProd) {
+      const cleanData = { ...productData };
+      delete cleanData.id;
 
-    const newProd = {
-      id: this._generateId(),
-      ...cleanData,
-      status: cleanData.status || 'Aktif',
-      created_at: new Date().toISOString()
-    };
-    products.unshift(newProd);
+      savedProd = {
+        id: this._generateId(),
+        ...cleanData,
+        status: cleanData.status || 'Aktif',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      products.unshift(savedProd);
+    }
+
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
-    return newProd;
+    await upsertToSupabase(SUPABASE_TABLES.PRODUCTS, savedProd);
+    return savedProd;
   }
 
-  deleteProduct(id) {
+  async deleteProduct(id) {
     const products = this.getProducts().filter(p => p.id !== id);
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
+    await deleteFromSupabase(SUPABASE_TABLES.PRODUCTS, id);
   }
 
   // --- Accounts CRUD ---
@@ -300,6 +368,8 @@ class AccExpressDB {
       encPass = await CryptoUtil.encrypt(accData.password);
     }
 
+    let savedAcc = null;
+
     if (accData.id && String(accData.id).trim() !== '') {
       const idx = accounts.findIndex(a => a.id === accData.id);
       if (idx !== -1) {
@@ -310,41 +380,46 @@ class AccExpressDB {
           updated_at: new Date().toISOString()
         };
         delete accounts[idx].password;
-        this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-        return accounts[idx];
+        savedAcc = accounts[idx];
       }
     }
 
-    const cleanData = { ...accData };
-    delete cleanData.id;
-    delete cleanData.password;
+    if (!savedAcc) {
+      const cleanData = { ...accData };
+      delete cleanData.id;
+      delete cleanData.password;
 
-    const isLinkType = cleanData.access_type === 'LINK' || Boolean(cleanData.link);
+      const isLinkType = cleanData.access_type === 'LINK' || Boolean(cleanData.link);
 
-    const newAcc = {
-      id: this._generateId(),
-      product_id: cleanData.product_id,
-      access_type: isLinkType ? 'LINK' : 'ACCOUNT',
-      username_or_email: isLinkType ? (cleanData.link || cleanData.username_or_email || '') : (cleanData.username_or_email || ''),
-      encrypted_password: isLinkType ? '' : encPass,
-      link: cleanData.link || (isLinkType ? cleanData.username_or_email : ''),
-      status: cleanData.status || 'TERSEDIA',
-      customer_whatsapp: cleanData.customer_whatsapp || '',
-      duration: cleanData.duration ? Number(cleanData.duration) : 30,
-      duration_unit: cleanData.duration_unit || 'Hari',
-      sent_at: cleanData.sent_at || null,
-      expires_at: cleanData.expires_at || null,
-      notes: cleanData.notes || '',
-      created_at: new Date().toISOString()
-    };
-    accounts.unshift(newAcc);
+      savedAcc = {
+        id: this._generateId(),
+        product_id: cleanData.product_id,
+        access_type: isLinkType ? 'LINK' : 'ACCOUNT',
+        username_or_email: isLinkType ? (cleanData.link || cleanData.username_or_email || '') : (cleanData.username_or_email || ''),
+        encrypted_password: isLinkType ? '' : encPass,
+        link: cleanData.link || (isLinkType ? cleanData.username_or_email : ''),
+        status: cleanData.status || 'TERSEDIA',
+        customer_whatsapp: cleanData.customer_whatsapp || '',
+        duration: cleanData.duration ? Number(cleanData.duration) : 30,
+        duration_unit: cleanData.duration_unit || 'Hari',
+        sent_at: cleanData.sent_at || null,
+        expires_at: cleanData.expires_at || null,
+        notes: cleanData.notes || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      accounts.unshift(savedAcc);
+    }
+
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    return newAcc;
+    await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc);
+    return savedAcc;
   }
 
-  deleteAccount(id) {
+  async deleteAccount(id) {
     const accounts = this.getAccounts().filter(a => a.id !== id);
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+    await deleteFromSupabase(SUPABASE_TABLES.ACCOUNTS, id);
   }
 
   async resetAccount(id) {
@@ -357,6 +432,7 @@ class AccExpressDB {
       accounts[idx].expires_at = null;
       accounts[idx].updated_at = new Date().toISOString();
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts[idx]);
       return accounts[idx];
     }
     return null;
@@ -381,8 +457,9 @@ class AccExpressDB {
     return this.getDefaultTemplate();
   }
 
-  saveTemplate(templateData) {
+  async saveTemplate(templateData) {
     let templates = this.getTemplates();
+    let savedTpl = null;
 
     if (templateData.is_default) {
       templates.forEach(t => t.is_default = false);
@@ -392,36 +469,42 @@ class AccExpressDB {
       const idx = templates.findIndex(t => t.id === templateData.id);
       if (idx !== -1) {
         templates[idx] = { ...templates[idx], ...templateData, updated_at: new Date().toISOString() };
-        this._set(this.STORAGE_KEYS.TEMPLATES, templates);
-        return templates[idx];
+        savedTpl = templates[idx];
       }
     }
 
-    const cleanData = { ...templateData };
-    delete cleanData.id;
+    if (!savedTpl) {
+      const cleanData = { ...templateData };
+      delete cleanData.id;
 
-    const newTpl = {
-      id: this._generateId(),
-      ...cleanData,
-      is_default: cleanData.is_default || templates.length === 0,
-      created_at: new Date().toISOString()
-    };
-    templates.unshift(newTpl);
+      savedTpl = {
+        id: this._generateId(),
+        ...cleanData,
+        is_default: cleanData.is_default || templates.length === 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      templates.unshift(savedTpl);
+    }
+
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
-    return newTpl;
+    await upsertToSupabase(SUPABASE_TABLES.TEMPLATES, templates);
+    return savedTpl;
   }
 
-  setDefaultTemplate(id) {
+  async setDefaultTemplate(id) {
     const templates = this.getTemplates();
     templates.forEach(t => {
       t.is_default = (t.id === id);
     });
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
+    await upsertToSupabase(SUPABASE_TABLES.TEMPLATES, templates);
   }
 
-  deleteTemplate(id) {
+  async deleteTemplate(id) {
     const templates = this.getTemplates().filter(t => t.id !== id);
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
+    await deleteFromSupabase(SUPABASE_TABLES.TEMPLATES, id);
   }
 
   // --- Transactions ---
@@ -429,23 +512,24 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.TRANSACTIONS);
   }
 
-  addTransaction(txData) {
+  async addTransaction(txData) {
     const transactions = this.getTransactions();
     const newTx = {
       id: this._generateId(),
-      account_id: txData.account_id,
-      product_id: txData.product_id,
-      customer_whatsapp: txData.customer_whatsapp,
-      delivery_method: txData.delivery_method,
-      duration: txData.duration,
-      duration_unit: txData.duration_unit,
+      account_id: txData.account_id || '',
+      product_id: txData.product_id || '',
+      customer_whatsapp: txData.customer_whatsapp || '',
+      delivery_method: txData.delivery_method || 'QUICK_ACCESS',
+      duration: txData.duration ? Number(txData.duration) : 30,
+      duration_unit: txData.duration_unit || 'Hari',
       sent_at: txData.sent_at || new Date().toISOString(),
-      expires_at: txData.expires_at,
+      expires_at: txData.expires_at || null,
       status: txData.status || 'TERKIRIM',
       created_at: new Date().toISOString()
     };
     transactions.unshift(newTx);
     this._set(this.STORAGE_KEYS.TRANSACTIONS, transactions);
+    await upsertToSupabase(SUPABASE_TABLES.TRANSACTIONS, newTx);
     return newTx;
   }
 
@@ -454,19 +538,20 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.ACTIVITY_LOGS);
   }
 
-  addActivityLog(adminId, action, targetType, description, targetId = '') {
+  async addActivityLog(adminId, action, targetType, description, targetId = '') {
     const logs = this.getActivityLogs();
     const newLog = {
       id: this._generateId(),
       admin_id: adminId || 'admin',
-      action,
-      target_type: targetType,
-      target_id: targetId,
-      description,
+      action: action || 'Aktivitas',
+      target_type: targetType || 'sistem',
+      target_id: targetId || '',
+      description: description || '',
       created_at: new Date().toISOString()
     };
     logs.unshift(newLog);
     this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, logs);
+    await upsertToSupabase(SUPABASE_TABLES.ACTIVITY_LOGS, newLog);
     return newLog;
   }
 
@@ -479,7 +564,6 @@ class AccExpressDB {
   async verifyAdmin(username, pinInput) {
     const activePin = this.getAdminPin();
     const cleanInput = String(pinInput || '').trim();
-    // PIN VERIFIKASI STRICT DENGAN PIN UTAMA YANG AKTIF!
     return cleanInput === activePin;
   }
 
@@ -487,13 +571,24 @@ class AccExpressDB {
     const cleanPin = String(newPin || '2001').trim();
     const settings = this.getSettings();
     settings.admin_pin = cleanPin;
-    this.saveSettings(settings);
+    await this.saveSettings(settings);
 
     let adminUsers = this._get(this.STORAGE_KEYS.ADMIN_USERS);
+    const passHash = await CryptoUtil.hashPassword(cleanPin);
+
     if (adminUsers.length > 0) {
-      adminUsers[0].password_hash = await CryptoUtil.hashPassword(cleanPin);
-      this._set(this.STORAGE_KEYS.ADMIN_USERS, adminUsers);
+      adminUsers[0].password_hash = passHash;
+    } else {
+      adminUsers.push({
+        id: 'admin_1',
+        username: 'admin',
+        password_hash: passHash,
+        role: 'SUPER_ADMIN',
+        created_at: new Date().toISOString()
+      });
     }
+    this._set(this.STORAGE_KEYS.ADMIN_USERS, adminUsers);
+    await upsertToSupabase(SUPABASE_TABLES.ADMIN_USERS, adminUsers);
     return true;
   }
 
@@ -502,17 +597,24 @@ class AccExpressDB {
     const data = localStorage.getItem(this.STORAGE_KEYS.SETTINGS);
     return data ? JSON.parse(data) : {
       web_name: 'AccExpress Seller Hub',
-      shop_name: 'AccExpress Store',
+      shop_name: 'AccExpress Digital Store',
       shop_whatsapp: '081234567890',
       admin_pin: '2001',
       timezone: 'Asia/Jakarta (UTC+7)'
     };
   }
 
-  saveSettings(newSettings) {
+  async saveSettings(newSettings) {
     const current = this.getSettings();
     const updated = { ...current, ...newSettings };
     localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
+
+    const settingsRecord = {
+      id: 'main_settings',
+      ...updated,
+      updated_at: new Date().toISOString()
+    };
+    await upsertToSupabase(SUPABASE_TABLES.SETTINGS, settingsRecord);
     return updated;
   }
 }
