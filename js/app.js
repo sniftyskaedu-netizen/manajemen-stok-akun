@@ -1446,25 +1446,27 @@ class AccExpressApp {
 
     const feedContainer = document.getElementById('recentActivityFeed');
     if (feedContainer) {
-      const recentTx = transactions.slice(0, 6);
+      const recentTx = transactions.slice(0, 10);
       if (recentTx.length === 0) {
         feedContainer.innerHTML = `<div class="empty-state" style="padding: 1rem 0;"><div class="empty-text">Belum ada transaksi.</div></div>`;
       } else {
-        let feedHtml = '';
+        let feedHtml = '<div class="dashboard-alert-list">';
         recentTx.forEach(tx => {
           const prod = products.find(p => p.id === tx.product_id);
           feedHtml += `
-            <div class="activity-item">
-              <div class="activity-info">
-                <i data-lucide="send" style="color: var(--accent-primary);"></i>
-                <div>
-                  <strong>${prod ? prod.name : 'Produk'}</strong>
-                  <div style="font-size: 0.75rem; color: var(--text-muted);">Customer: ${tx.customer_whatsapp} | Metode: ${tx.delivery_method}</div>
+            <div class="dashboard-alert-item" style="border-left: 3.5px solid var(--accent-primary);">
+              <div class="dashboard-alert-info">
+                <div class="dashboard-alert-header">
+                  <i data-lucide="send" style="width:12px;height:12px;color:var(--accent-primary);flex-shrink:0;"></i>
+                  <span>${prod ? prod.name : 'Produk'}</span>
+                </div>
+                <div class="dashboard-alert-account">WA Customer: ${tx.customer_whatsapp || '-'} (${tx.delivery_method || 'QUICK_ACCESS'})</div>
+                <div class="dashboard-alert-meta">
+                  <span>Tgl Kirim: ${TemplateEngine.formatDateIndo(tx.sent_at)}</span>
                 </div>
               </div>
-              <div style="text-align: right;">
-                <span class="badge badge-sent">${tx.status}</span>
-                <div class="activity-time">${TemplateEngine.formatDateIndo(tx.sent_at)}</div>
+              <div class="dashboard-alert-badge-wrap">
+                <span class="badge badge-sent">${tx.status || 'TERKIRIM'}</span>
               </div>
             </div>
           `;
