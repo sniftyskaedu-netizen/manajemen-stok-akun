@@ -1060,6 +1060,92 @@ body:not(.dark-mode) .form-textarea:focus {
   color: #fff;
 }
 
+/* SINGLE-ROW COMPACT TOOLBAR IN SENT MESSAGE MODAL */
+.msg-format-toolbar {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.msg-toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.msg-format-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.msg-format-label i {
+  color: var(--accent-primary);
+  width: 13px;
+  height: 13px;
+}
+
+.msg-segmented-group {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--bg-input);
+  padding: 0.15rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  flex-wrap: nowrap;
+}
+
+.msg-segmented-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.22rem 0.48rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.msg-segmented-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.msg-segmented-btn.active {
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+}
+
+@media (max-width: 520px) {
+  .msg-format-toolbar {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .msg-segmented-btn {
+    padding: 0.18rem 0.35rem;
+    font-size: 0.7rem;
+  }
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;

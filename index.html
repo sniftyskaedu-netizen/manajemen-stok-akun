@@ -868,6 +868,40 @@
         Customer.
       </p>
 
+      <!-- BAR PENGATURAN BAHASA & FORMAT TEBAL TEKS (SINGLE-ROW COMPACT TOOLBAR) -->
+      <div class="msg-format-toolbar">
+        
+        <!-- Pilihan Bahasa -->
+        <div class="msg-toolbar-item">
+          <span class="msg-format-label"><i data-lucide="languages"></i> Bahasa:</span>
+          <div class="msg-segmented-group">
+            <button type="button" id="msgLangIdBtn" class="msg-segmented-btn active" title="Bahasa Indonesia (Default)">
+              🇮🇩 ID
+            </button>
+            <button type="button" id="msgLangEnBtn" class="msg-segmented-btn" title="English Language">
+              🇬🇧 EN
+            </button>
+          </div>
+        </div>
+
+        <!-- Pilihan Format Tebal -->
+        <div class="msg-toolbar-item">
+          <span class="msg-format-label"><i data-lucide="bold"></i> Format:</span>
+          <div class="msg-segmented-group">
+            <button type="button" id="msgBoldUniBtn" class="msg-segmented-btn active" title="Format Tebal Universal (Bisa di Shopee, Tokopedia, IG, FB, Telegram, dll)">
+              🌐 Universal
+            </button>
+            <button type="button" id="msgBoldWaBtn" class="msg-segmented-btn" title="Format Tebal WhatsApp (*teks*)">
+              📱 WA
+            </button>
+            <button type="button" id="msgBoldMdBtn" class="msg-segmented-btn" title="Format Tebal Markdown (**teks**)">
+              📝 MD
+            </button>
+          </div>
+        </div>
+
+      </div>
+
       <div
         style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; max-height: 220px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.82rem; color: var(--text-main);"
         id="sentMessageOutput">
@@ -949,6 +983,20 @@
       <div class="modal-header">
         <h3 class="modal-title"><i data-lucide="eye"></i> Pratinjau Template Pesan</h3>
         <button class="modal-close-btn" data-close="templatePreviewModal">&times;</button>
+      </div>
+      <!-- Fitur Bahasa / Translate Toggle di Preview -->
+      <div class="msg-format-toolbar">
+        <div class="msg-toolbar-item">
+          <span class="msg-format-label"><i data-lucide="languages"></i> Bahasa:</span>
+          <div class="msg-segmented-group">
+            <button type="button" id="prevLangIdBtn" class="msg-segmented-btn active" title="Bahasa Indonesia (Default)">
+              🇮🇩 ID
+            </button>
+            <button type="button" id="prevLangEnBtn" class="msg-segmented-btn" title="English Language">
+              🇬🇧 EN
+            </button>
+          </div>
+        </div>
       </div>
       <div
         style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); white-space: pre-wrap; font-family: monospace; font-size: 0.85rem;"

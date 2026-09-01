@@ -7,6 +7,14 @@ class AccExpressApp {
     this.currentAdmin = sessionStorage.getItem('accexpress_admin') || null;
     this.decryptedPasswords = {};
     this.lastCompiledMessage = '';
+    this.lastCompiledHtml = '';
+    this.messageIndo = '';
+    this.messageEng = '';
+    this.currentCustomerWa = '';
+    this.currentMessageLang = 'id';
+    this.currentBoldStyle = 'UNICODE';
+    this.previewIndo = '';
+    this.previewEng = '';
   }
 
   async init() {
@@ -158,17 +166,37 @@ class AccExpressApp {
     }, duration);
   }
 
-  // --- CLIPBOARD HELPER ---
-  async copyToClipboard(text) {
+  // --- CLIPBOARD HELPER (MULTIPLE MIME-TYPES: PLAIN TEXT & HTML RICH TEXT) ---
+  async copyToClipboard(text, htmlText = null) {
     if (!text) return false;
 
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const textBlob = new Blob([text], { type: 'text/plain' });
+        const data = { 'text/plain': textBlob };
+
+        if (htmlText) {
+          const htmlBlob = new Blob([htmlText], { type: 'text/html' });
+          data['text/html'] = htmlBlob;
+        }
+
+        const item = new ClipboardItem(data);
+        await navigator.clipboard.write([item]);
+        return true;
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text);
         return true;
       }
     } catch (e) {
-      console.warn('Navigator.clipboard error:', e);
+      console.warn('ClipboardItem copy warning, fallback to writeText:', e);
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (err2) {
+        console.warn('writeText fallback error:', err2);
+      }
     }
 
     try {
@@ -197,23 +225,64 @@ class AccExpressApp {
     }
   }
 
-  // --- SHOW SENT MESSAGE RESULT MODAL ---
-  showSentMessageResultModal(compiledMessage, customerWa) {
-    this.lastCompiledMessage = compiledMessage;
+  // --- REFRESH DISPLAY RESULT MODAL SESUAI PENGATURAN BAHASA & FORMAT TEBAL TEKS ---
+  updateSentMessageModalDisplay() {
+    const rawText = (this.currentMessageLang === 'en') ? (this.messageEng || '') : (this.messageIndo || '');
+    const formattedText = TemplateEngine.formatBoldStyle(rawText, this.currentBoldStyle);
+    const htmlText = TemplateEngine.toHtmlRichText(rawText);
+
+    this.lastCompiledMessage = formattedText;
+    this.lastCompiledHtml = htmlText;
+
     const outputEl = document.getElementById('sentMessageOutput');
     const waBtn = document.getElementById('sentMessageWaBtn');
 
-    if (outputEl) outputEl.innerText = compiledMessage;
+    if (outputEl) outputEl.innerText = formattedText;
 
     if (waBtn) {
-      let cleanWa = (customerWa || '').replace(/[^0-9]/g, '');
-      if (cleanWa.startsWith('0')) {
-        cleanWa = '62' + cleanWa.substring(1);
-      }
-      waBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent(compiledMessage)}`;
+      let cleanWa = (this.currentCustomerWa || '').replace(/[^0-9]/g, '');
+      if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.substring(1);
+      waBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent(formattedText)}`;
     }
 
+    // Update kelas aktif tombol Pilihan Bahasa
+    const btnId = document.getElementById('msgLangIdBtn');
+    const btnEn = document.getElementById('msgLangEnBtn');
+    if (btnId && btnEn) {
+      btnId.className = (this.currentMessageLang === 'id') ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+      btnEn.className = (this.currentMessageLang === 'en') ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+    }
+
+    // Update kelas aktif tombol Format Tebal Teks
+    const btnUni = document.getElementById('msgBoldUniBtn');
+    const btnWa = document.getElementById('msgBoldWaBtn');
+    const btnMd = document.getElementById('msgBoldMdBtn');
+
+    if (btnUni) btnUni.className = (this.currentBoldStyle === 'UNICODE') ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+    if (btnWa) btnWa.className = (this.currentBoldStyle === 'WHATSAPP') ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+    if (btnMd) btnMd.className = (this.currentBoldStyle === 'MARKDOWN') ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+  }
+
+  // --- SHOW SENT MESSAGE RESULT MODAL ---
+  showSentMessageResultModal(compiledMessage, customerWa) {
+    this.messageIndo = compiledMessage;
+    this.messageEng = TemplateEngine.translateToEnglish(compiledMessage);
+    this.currentCustomerWa = customerWa;
+    this.currentMessageLang = 'id'; // Default Bahasa Indonesia
+    this.currentBoldStyle = 'UNICODE'; // Default Format Tebal Universal (Cross-Platform)
+
+    this.updateSentMessageModalDisplay();
     this.openModal('sentMessageModal');
+
+    // Proses penerjemahan online AI di latar belakang untuk menerjemahkan seluruh teks custom bebas
+    TemplateEngine.translateToEnglishAsync(compiledMessage).then(asyncText => {
+      if (asyncText) {
+        this.messageEng = asyncText;
+        if (this.currentMessageLang === 'en') {
+          this.updateSentMessageModalDisplay();
+        }
+      }
+    });
   }
 
   // --- MODAL HELPERS ---
@@ -287,13 +356,72 @@ class AccExpressApp {
 
     document.getElementById('resendCopyBtn')?.addEventListener('click', async () => {
       if (this.lastCompiledMessage) {
-        const copied = await this.copyToClipboard(this.lastCompiledMessage);
+        const copied = await this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
         if (copied) {
           this.showToast('✓ Pesan berhasil disalin ke clipboard!', 'success');
         } else {
           this.showToast('Silakan salin teks dari kotak secara manual.', 'info');
         }
       }
+    });
+
+    // TOGGLE BAHASA PADA RESULT MODAL ("Akun Berhasil Dikirim!")
+    document.getElementById('msgLangIdBtn')?.addEventListener('click', () => {
+      this.currentMessageLang = 'id';
+      this.updateSentMessageModalDisplay();
+      this.showToast('Bahasa Indonesia diaktifkan.', 'info');
+    });
+
+    document.getElementById('msgLangEnBtn')?.addEventListener('click', async () => {
+      this.currentMessageLang = 'en';
+      if (this.messageIndo) {
+        const asyncEngText = await TemplateEngine.translateToEnglishAsync(this.messageIndo);
+        if (asyncEngText) this.messageEng = asyncEngText;
+      }
+      this.updateSentMessageModalDisplay();
+      await this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
+      this.showToast('✓ Teks diterjemahkan ke Bahasa Inggris & disalin ke clipboard!', 'success');
+    });
+
+    // TOGGLE FORMAT TEBAL TEKS (CROSS-PLATFORM BOLD CONTROLLER)
+    document.getElementById('msgBoldUniBtn')?.addEventListener('click', async () => {
+      this.currentBoldStyle = 'UNICODE';
+      this.updateSentMessageModalDisplay();
+      await this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
+      this.showToast('✓ Format Tebal Universal (Cross-Platform) diaktifkan & disalin!', 'success');
+    });
+
+    document.getElementById('msgBoldWaBtn')?.addEventListener('click', async () => {
+      this.currentBoldStyle = 'WHATSAPP';
+      this.updateSentMessageModalDisplay();
+      await this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
+      this.showToast('Format Tebal WhatsApp (*teks*) diaktifkan.', 'info');
+    });
+
+    document.getElementById('msgBoldMdBtn')?.addEventListener('click', async () => {
+      this.currentBoldStyle = 'MARKDOWN';
+      this.updateSentMessageModalDisplay();
+      await this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
+      this.showToast('Format Tebal Markdown (**teks**) diaktifkan.', 'info');
+    });
+
+    // TOGGLE TRANSLATE BAHASA PADA TEMPLATE PREVIEW MODAL
+    document.getElementById('prevLangIdBtn')?.addEventListener('click', () => {
+      const outputEl = document.getElementById('templatePreviewOutput');
+      if (outputEl && this.previewIndo) outputEl.innerText = this.previewIndo;
+      document.getElementById('prevLangIdBtn')?.classList.add('active');
+      document.getElementById('prevLangEnBtn')?.classList.remove('active');
+    });
+
+    document.getElementById('prevLangEnBtn')?.addEventListener('click', async () => {
+      const outputEl = document.getElementById('templatePreviewOutput');
+      if (this.previewIndo) {
+        const asyncPreviewText = await TemplateEngine.translateToEnglishAsync(this.previewIndo);
+        if (asyncPreviewText) this.previewEng = asyncPreviewText;
+      }
+      if (outputEl && this.previewEng) outputEl.innerText = this.previewEng;
+      document.getElementById('prevLangEnBtn')?.classList.add('active');
+      document.getElementById('prevLangIdBtn')?.classList.remove('active');
     });
 
     document.getElementById('salesHubProductFilter')?.addEventListener('change', () => {
@@ -487,10 +615,21 @@ class AccExpressApp {
         expires_date: TemplateEngine.calculateExpirationDate(new Date(), 30, 'Hari')
       });
 
+      this.previewIndo = compiled;
+      this.previewEng = TemplateEngine.translateToEnglish(compiled);
+
       const outputEl = document.getElementById('templatePreviewOutput');
       if (outputEl) {
-        outputEl.innerText = compiled;
+        outputEl.innerText = this.previewIndo;
       }
+
+      const prevId = document.getElementById('prevLangIdBtn');
+      const prevEn = document.getElementById('prevLangEnBtn');
+      if (prevId && prevEn) {
+        prevId.classList.add('active');
+        prevEn.classList.remove('active');
+      }
+
       this.openModal('templatePreviewModal');
     });
 
