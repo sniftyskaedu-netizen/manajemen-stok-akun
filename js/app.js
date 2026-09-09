@@ -170,28 +170,34 @@ class AccExpressApp {
   async copyToClipboard(text, htmlText = null) {
     if (!text) return false;
 
+    // Normalisasi line endings (\r\n -> \n) agar 100% presisi dan tidak terpecah
+    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Deteksi perangkat mobile (HP / Tablet / Touchscreen)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+      || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
+
+    // Di HP/Mobile, WAJIB menggunakan Plain Text murni saja (tanpa MIME text/html Blob).
+    // MIME text/html pada ClipboardItem di HP membuat keyboard (Gboard/Samsung) & WhatsApp memecah tag <br>/<div> menjadi banyak kalimat terpisah.
     try {
-      if (navigator.clipboard && window.ClipboardItem) {
-        const textBlob = new Blob([text], { type: 'text/plain' });
-        const data = { 'text/plain': textBlob };
-
-        if (htmlText) {
-          const htmlBlob = new Blob([htmlText], { type: 'text/html' });
-          data['text/html'] = htmlBlob;
-        }
-
-        const item = new ClipboardItem(data);
+      if (!isMobile && htmlText && navigator.clipboard && window.ClipboardItem) {
+        const textBlob = new Blob([cleanText], { type: 'text/plain' });
+        const htmlBlob = new Blob([htmlText], { type: 'text/html' });
+        const item = new ClipboardItem({
+          'text/plain': textBlob,
+          'text/html': htmlBlob
+        });
         await navigator.clipboard.write([item]);
         return true;
       } else if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(cleanText);
         return true;
       }
     } catch (e) {
       console.warn('ClipboardItem copy warning, fallback to writeText:', e);
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
+          await navigator.clipboard.writeText(cleanText);
           return true;
         }
       } catch (err2) {
@@ -201,7 +207,7 @@ class AccExpressApp {
 
     try {
       const textArea = document.createElement('textarea');
-      textArea.value = text;
+      textArea.value = cleanText;
       textArea.style.position = 'fixed';
       textArea.style.top = '0';
       textArea.style.left = '0';
@@ -274,12 +280,16 @@ class AccExpressApp {
     this.updateSentMessageModalDisplay();
     this.openModal('sentMessageModal');
 
+    // Salin versi terformat (termasuk Unicode Bold) secara otomatis ke clipboard
+    this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
+
     // Proses penerjemahan online AI di latar belakang untuk menerjemahkan seluruh teks custom bebas
     TemplateEngine.translateToEnglishAsync(compiledMessage).then(asyncText => {
       if (asyncText) {
         this.messageEng = asyncText;
         if (this.currentMessageLang === 'en') {
           this.updateSentMessageModalDisplay();
+          this.copyToClipboard(this.lastCompiledMessage, this.lastCompiledHtml);
         }
       }
     });
