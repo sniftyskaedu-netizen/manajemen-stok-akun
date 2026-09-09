@@ -606,7 +606,7 @@ class AccExpressApp {
         access_type: isLinkProd ? 'LINK' : 'ACCOUNT',
         username: sampleUser,
         password: isLinkProd ? '-' : 'secretPassword123',
-        link: sampleLink,
+        link: isLinkProd ? sampleLink : '',
         duration: sampleAcc ? sampleAcc.duration : 30,
         duration_unit: sampleAcc ? sampleAcc.duration_unit : 'Hari',
         customer_whatsapp: '081234567890',
@@ -1308,12 +1308,13 @@ class AccExpressApp {
     });
 
     const activeTemplate = db.getTemplateForProduct(acc.product_id);
+    const isAccLink = acc.access_type === 'LINK' || Boolean(acc.link && (acc.link.startsWith('http://') || acc.link.startsWith('https://')));
     const compiledMessage = TemplateEngine.compile(activeTemplate ? activeTemplate.content : '', {
       product: prod ? prod.name : '',
-      access_type: acc.access_type,
+      access_type: acc.access_type || (isAccLink ? 'LINK' : 'ACCOUNT'),
       username: acc.username_or_email,
       password: rawPassword,
-      link: acc.link || acc.username_or_email,
+      link: isAccLink ? (acc.link || acc.username_or_email) : '',
       duration: duration,
       duration_unit: durationUnit,
       customer_whatsapp: customerWa,

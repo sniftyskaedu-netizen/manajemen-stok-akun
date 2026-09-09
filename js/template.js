@@ -115,7 +115,18 @@ export const TemplateEngine = {
     const rawUsername = data.username || data.email || '';
     const rawLink = data.link || data.access_link || '';
     const accessType = (data.access_type || '').toUpperCase();
-    const isLinkProduct = accessType === 'LINK' || Boolean(rawLink) || rawUsername.startsWith('http://') || rawUsername.startsWith('https://');
+
+    // Penentuan apakah produk ini tipe LINK (URL) atau ACCOUNT (Email/Username + Password)
+    let isLinkProduct = false;
+    if (accessType === 'ACCOUNT') {
+      isLinkProduct = false;
+    } else if (accessType === 'LINK') {
+      isLinkProduct = true;
+    } else {
+      const linkStr = (rawLink || '').toLowerCase();
+      const userStr = (rawUsername || '').toLowerCase();
+      isLinkProduct = linkStr.startsWith('http://') || linkStr.startsWith('https://') || userStr.startsWith('http://') || userStr.startsWith('https://');
+    }
 
     const actualLink = rawLink || (isLinkProduct ? rawUsername : '');
     const displayUsernameOrLink = isLinkProduct ? (actualLink || rawUsername) : rawUsername;
@@ -126,9 +137,9 @@ export const TemplateEngine = {
       '{{email_link}}': displayUsernameOrLink,
       '{{username}}': displayUsernameOrLink,
       '{{password}}': isLinkProduct ? '-' : (data.password || '-'),
-      '{{link}}': displayUsernameOrLink,
-      '{{link_akses}}': displayUsernameOrLink,
-      '{{url_akses}}': displayUsernameOrLink,
+      '{{link}}': isLinkProduct ? displayUsernameOrLink : '-',
+      '{{link_akses}}': isLinkProduct ? displayUsernameOrLink : '-',
+      '{{url_akses}}': isLinkProduct ? displayUsernameOrLink : '-',
       '{{duration}}': data.duration || '',
       '{{duration_unit}}': data.duration_unit || 'Hari',
       '{{customer_whatsapp}}': data.customer_whatsapp || '',
