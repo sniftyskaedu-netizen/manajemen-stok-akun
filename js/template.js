@@ -50,11 +50,20 @@ export const TemplateEngine = {
 
   /**
    * Convert plain text letters & numbers to Mathematical Sans-Serif Bold Unicode characters
-   * Works as native bold text across all platforms (Shopee, Tokopedia, Telegram, IG, FB, Notes, etc.)
+   * Protects Email, URLs, Domains, Dates, and Times so OS clipboards & tokenizers NEVER break them into separate pieces
    */
   toUnicodeBold(str) {
     if (!str) return '';
-    return str.replace(/[A-Za-z0-9]/g, (char) => {
+
+    // Proteksi Email, URL, Domain (.com/.net/.id/dll), Tanggal, dan Waktu agar TIDAK diubah ke Unicode Math Symbol.
+    // Simbol Unicode Math membuat browser & keyboard HP memecah kata/elemen menjadi terpisah saat di-copy.
+    const protectedItems = [];
+    const masked = str.replace(/(https?:\/\/[^\s]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\b[a-zA-Z0-9-]+\.(com|net|org|co|id|io|me|gov|edu)\b|\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{1,4}|\d{1,2}:\d{2})/gi, (match) => {
+      protectedItems.push(match);
+      return `___PROT_${protectedItems.length - 1}___`;
+    });
+
+    let converted = masked.replace(/[A-Za-z0-9]/g, (char) => {
       const code = char.charCodeAt(0);
       if (code >= 65 && code <= 90) {
         return String.fromCodePoint(0x1D5D4 + (code - 65));
@@ -65,17 +74,24 @@ export const TemplateEngine = {
       }
       return char;
     });
+
+    // Kembalikan elemen terproteksi dalam format teks standar murni
+    protectedItems.forEach((item, index) => {
+      converted = converted.replace(`___PROT_${index}___`, item);
+    });
+
+    return converted;
   },
 
   /**
    * Format text bold styling based on requested mode:
-   * 'UNICODE' -> Converts *text* or **text** into 𝗧𝗲𝗸𝘀 𝗧𝗲𝗯𝗮𝗹 (Universal bold for Shopee/Tokopedia/FB/IG/etc.)
-   * 'WHATSAPP' -> Standard WhatsApp *text* bold format
+   * 'WHATSAPP' -> Standard WhatsApp *text* bold format (Default untuk fitur pesanan agar 100% menyatu & clickable)
+   * 'UNICODE' -> Converts *text* or **text** into 𝗧𝗲𝗸𝘀 𝗧𝗲𝗯𝗮𝗹 Universal
    * 'MARKDOWN' -> Standard **text** double asterisk format
    */
-  formatBoldStyle(text, styleMode = 'UNICODE') {
+  formatBoldStyle(text, styleMode = 'WHATSAPP') {
     if (!text) return '';
-    const mode = (styleMode || 'UNICODE').toUpperCase();
+    const mode = (styleMode || 'WHATSAPP').toUpperCase();
 
     if (mode === 'UNICODE') {
       // Ubah *teks* atau **teks** menjadi karakter Unicode Bold Serbaguna
@@ -300,9 +316,9 @@ export const TemplateEngine = {
       let localLine = this.translateToEnglish(line);
 
       try {
-        // Proteksi URL dan Email per baris
+        // Proteksi URL, Email, Domain, Tanggal, dan Waktu per baris agar tidak dipecah spasinya oleh Google Translate
         const protectedItems = [];
-        const maskedLine = localLine.replace(/(https?:\/\/[^\s]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (match) => {
+        const maskedLine = localLine.replace(/(https?:\/\/[^\s]+|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\b[a-zA-Z0-9-]+\.(com|net|org|co|id|io|me|gov|edu)\b|\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{1,4}|\d{1,2}:\d{2})/gi, (match) => {
           protectedItems.push(match);
           return `___VAL_${protectedItems.length - 1}___`;
         });

@@ -275,7 +275,7 @@ class AccExpressApp {
     this.messageEng = TemplateEngine.translateToEnglish(compiledMessage);
     this.currentCustomerWa = customerWa;
     this.currentMessageLang = 'id'; // Default Bahasa Indonesia
-    this.currentBoldStyle = 'UNICODE'; // Default Format Tebal Universal (Cross-Platform)
+    this.currentBoldStyle = 'WHATSAPP'; // Default Format Tebal WhatsApp Native (*teks*) untuk Fitur Pesanan
 
     this.updateSentMessageModalDisplay();
     this.openModal('sentMessageModal');
