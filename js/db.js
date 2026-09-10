@@ -675,34 +675,60 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.ACCOUNTS);
   }
 
-  // --- CEK DUPLIKAT EMAIL & PASSWORD DI DAFTAR AKUN ---
-  async isDuplicateAccount(usernameOrEmail, rawPassword = '', excludeId = null) {
-    if (!usernameOrEmail) return false;
-
+  // --- CEK PERINGATAN DUPLIKAT EMAIL, PASSWORD, ATAU LINK DI DAFTAR AKUN ---
+  async checkDuplicateAccount(usernameOrEmail = '', rawPassword = '', link = '', excludeId = null) {
     const accounts = this.getAccounts();
-    const cleanUser = usernameOrEmail.trim().toLowerCase();
+    const cleanUser = (usernameOrEmail || '').trim().toLowerCase();
     const cleanPass = (rawPassword || '').trim();
+    const cleanLink = (link || '').trim().toLowerCase();
 
     for (const acc of accounts) {
       if (excludeId && String(acc.id) === String(excludeId)) continue;
 
-      const accUser = (acc.username_or_email || acc.link || '').trim().toLowerCase();
+      const accUser = (acc.username_or_email || '').trim().toLowerCase();
       const accLink = (acc.link || '').trim().toLowerCase();
 
-      // Cek apakah Email/Username/Link cocok
-      if (accUser === cleanUser || (accLink && accLink === cleanUser)) {
-        if (cleanPass) {
-          const decryptedPass = await CryptoUtil.decrypt(acc.encrypted_password || '');
-          if (decryptedPass.trim() === cleanPass) {
-            return true; // Duplikat Email & Password yang persis sama ditemukan!
-          }
-        } else {
-          return true;
+      // 1. CEK DUPLIKAT EMAIL / USERNAME
+      if (cleanUser && accUser && accUser === cleanUser) {
+        return {
+          isDuplicate: true,
+          type: 'email',
+          value: usernameOrEmail.trim(),
+          message: `• Email / Username "${usernameOrEmail.trim()}" sudah ada di daftar akun database.`
+        };
+      }
+
+      // 2. CEK DUPLIKAT LINK / URL AKSES
+      if (cleanLink && ((accLink && accLink === cleanLink) || (accUser && accUser === cleanLink))) {
+        return {
+          isDuplicate: true,
+          type: 'link',
+          value: link.trim(),
+          message: `• Link Akses "${link.trim()}" sudah ada di daftar akun database.`
+        };
+      }
+
+      // 3. CEK DUPLIKAT PASSWORD
+      if (cleanPass && acc.encrypted_password) {
+        const decryptedPass = await CryptoUtil.decrypt(acc.encrypted_password);
+        if (decryptedPass && decryptedPass.trim() === cleanPass) {
+          return {
+            isDuplicate: true,
+            type: 'password',
+            value: rawPassword.trim(),
+            message: `• Password "${rawPassword.trim()}" sudah terdaftar/digunakan pada akun lain di database.`
+          };
         }
       }
     }
 
-    return false;
+    return { isDuplicate: false };
+  }
+
+  // Backward compatibility wrapper
+  async isDuplicateAccount(usernameOrEmail, rawPassword = '', excludeId = null) {
+    const res = await this.checkDuplicateAccount(usernameOrEmail, rawPassword, '', excludeId);
+    return res.isDuplicate;
   }
 
   getAccountsByProductId(productId) {

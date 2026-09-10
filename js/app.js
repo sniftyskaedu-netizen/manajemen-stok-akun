@@ -295,6 +295,16 @@ class AccExpressApp {
     });
   }
 
+  // --- SHOW DUPLICATE WARNING MODAL ---
+  showDuplicateWarningModal(detailMessage) {
+    const detailsEl = document.getElementById('duplicateWarningDetails');
+    if (detailsEl) {
+      detailsEl.innerText = detailMessage;
+    }
+    this.openModal('duplicateWarningModal');
+    this.showToast('⛔ Penolakan: Data duplikat terdeteksi!', 'error');
+  }
+
   // --- MODAL HELPERS ---
   openModal(id) {
     const modal = document.getElementById(id);
@@ -1006,9 +1016,9 @@ class AccExpressApp {
       }
 
       // FITUR PENOLAKAN DUPLIKAT LINK AKSES
-      const isDup = await db.isDuplicateAccount(link, '');
-      if (isDup) {
-        this.showToast('⛔ Penolakan: Link Akses ini sudah terdaftar di daftar akun (duplikat).', 'error');
+      const dupCheck = await db.checkDuplicateAccount('', '', link);
+      if (dupCheck.isDuplicate) {
+        this.showDuplicateWarningModal(dupCheck.message);
         return;
       }
     } else {
@@ -1023,10 +1033,10 @@ class AccExpressApp {
         return;
       }
 
-      // FITUR PENOLAKAN DUPLIKAT EMAIL & PASSWORD YANG SAMA
-      const isDup = await db.isDuplicateAccount(username, password);
-      if (isDup) {
-        this.showToast('⛔ Penolakan: Kombinasi Email dan Password yang sama sudah ada di daftar akun.', 'error');
+      // FITUR PENOLAKAN DUPLIKAT EMAIL ATAU PASSWORD DI DAFTAR AKUN
+      const dupCheck = await db.checkDuplicateAccount(username, password, '');
+      if (dupCheck.isDuplicate) {
+        this.showDuplicateWarningModal(dupCheck.message);
         return;
       }
     }
@@ -1804,9 +1814,9 @@ class AccExpressApp {
       }
 
       // FITUR PENOLAKAN DUPLIKAT LINK AKSES
-      const isDup = await db.isDuplicateAccount(link, '', id);
-      if (isDup) {
-        this.showToast('⛔ Penolakan: Link Akses ini sudah terdaftar di daftar akun (duplikat).', 'error');
+      const dupCheck = await db.checkDuplicateAccount('', '', link, id);
+      if (dupCheck.isDuplicate) {
+        this.showDuplicateWarningModal(dupCheck.message);
         return;
       }
     } else {
@@ -1821,10 +1831,10 @@ class AccExpressApp {
         return;
       }
 
-      // FITUR PENOLAKAN DUPLIKAT EMAIL & PASSWORD YANG SAMA
-      const isDup = await db.isDuplicateAccount(username, password, id);
-      if (isDup) {
-        this.showToast('⛔ Penolakan: Kombinasi Email dan Password yang sama sudah ada di daftar akun.', 'error');
+      // FITUR PENOLAKAN DUPLIKAT EMAIL ATAU PASSWORD DI DAFTAR AKUN
+      const dupCheck = await db.checkDuplicateAccount(username, password, '', id);
+      if (dupCheck.isDuplicate) {
+        this.showDuplicateWarningModal(dupCheck.message);
         return;
       }
     }
