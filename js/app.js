@@ -1004,6 +1004,13 @@ class AccExpressApp {
         this.showToast('Silakan masukkan Link / URL Akses.', 'error');
         return;
       }
+
+      // FITUR PENOLAKAN DUPLIKAT LINK AKSES
+      const isDup = await db.isDuplicateAccount(link, '');
+      if (isDup) {
+        this.showToast('⛔ Penolakan: Link Akses ini sudah terdaftar di daftar akun (duplikat).', 'error');
+        return;
+      }
     } else {
       if (!username || !password) {
         this.showToast('Silakan masukkan Email/Username dan Password.', 'error');
@@ -1013,6 +1020,13 @@ class AccExpressApp {
       // VALIDASI WAJIB ADA KARAKTER @ PADA EMAIL
       if (!username.includes('@')) {
         this.showToast("Email / Username wajib mengandung karakter '@' (e.g. user@gmail.com).", 'error');
+        return;
+      }
+
+      // FITUR PENOLAKAN DUPLIKAT EMAIL & PASSWORD YANG SAMA
+      const isDup = await db.isDuplicateAccount(username, password);
+      if (isDup) {
+        this.showToast('⛔ Penolakan: Kombinasi Email dan Password yang sama sudah ada di daftar akun.', 'error');
         return;
       }
     }
@@ -1788,6 +1802,13 @@ class AccExpressApp {
         this.showToast('Silakan masukkan Link / URL Akses.', 'error');
         return;
       }
+
+      // FITUR PENOLAKAN DUPLIKAT LINK AKSES
+      const isDup = await db.isDuplicateAccount(link, '', id);
+      if (isDup) {
+        this.showToast('⛔ Penolakan: Link Akses ini sudah terdaftar di daftar akun (duplikat).', 'error');
+        return;
+      }
     } else {
       if (!username || !password) {
         this.showToast('Silakan masukkan Email/Username dan Password.', 'error');
@@ -1797,6 +1818,13 @@ class AccExpressApp {
       // VALIDASI WAJIB ADA KARAKTER @ PADA EMAIL
       if (!username.includes('@')) {
         this.showToast("Email / Username wajib mengandung karakter '@' (e.g. customer@gmail.com).", 'error');
+        return;
+      }
+
+      // FITUR PENOLAKAN DUPLIKAT EMAIL & PASSWORD YANG SAMA
+      const isDup = await db.isDuplicateAccount(username, password, id);
+      if (isDup) {
+        this.showToast('⛔ Penolakan: Kombinasi Email dan Password yang sama sudah ada di daftar akun.', 'error');
         return;
       }
     }

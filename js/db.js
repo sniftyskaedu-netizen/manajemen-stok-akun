@@ -675,6 +675,36 @@ class AccExpressDB {
     return this._get(this.STORAGE_KEYS.ACCOUNTS);
   }
 
+  // --- CEK DUPLIKAT EMAIL & PASSWORD DI DAFTAR AKUN ---
+  async isDuplicateAccount(usernameOrEmail, rawPassword = '', excludeId = null) {
+    if (!usernameOrEmail) return false;
+
+    const accounts = this.getAccounts();
+    const cleanUser = usernameOrEmail.trim().toLowerCase();
+    const cleanPass = (rawPassword || '').trim();
+
+    for (const acc of accounts) {
+      if (excludeId && String(acc.id) === String(excludeId)) continue;
+
+      const accUser = (acc.username_or_email || acc.link || '').trim().toLowerCase();
+      const accLink = (acc.link || '').trim().toLowerCase();
+
+      // Cek apakah Email/Username/Link cocok
+      if (accUser === cleanUser || (accLink && accLink === cleanUser)) {
+        if (cleanPass) {
+          const decryptedPass = await CryptoUtil.decrypt(acc.encrypted_password || '');
+          if (decryptedPass.trim() === cleanPass) {
+            return true; // Duplikat Email & Password yang persis sama ditemukan!
+          }
+        } else {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   getAccountsByProductId(productId) {
     if (!productId) return [];
     return this.getAccounts().filter(a => a.product_id === productId);
