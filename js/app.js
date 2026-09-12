@@ -1185,6 +1185,13 @@ class AccExpressApp {
       return matchSearch && matchProd && matchStatus;
     });
 
+    // Susunan teratas itu akun terkirim terbaru (sort by sent_at / updated_at desc)
+    accounts.sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0));
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0));
+      return dateB - dateA;
+    });
+
     if (accounts.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -1673,6 +1680,13 @@ class AccExpressApp {
       return matchSearch && matchProd && matchStatus;
     });
 
+    // Susunan teratas itu akun terkirim terbaru (sort by sent_at / updated_at desc)
+    accounts.sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0));
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0));
+      return dateB - dateA;
+    });
+
     if (accounts.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" class="empty-state">Tidak ada akun ditemukan.</td></tr>`;
       return;
@@ -2136,6 +2150,13 @@ class AccExpressApp {
       const matchSearch = tx.customer_whatsapp.toLowerCase().includes(search);
       const matchMethod = !methodFilter || tx.delivery_method === methodFilter;
       return matchSearch && matchMethod;
+    });
+
+    // Susunan teratas itu akun terkirim terbaru (sort by sent_at desc)
+    txs.sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+      return dateB - dateA;
     });
 
     if (txs.length === 0) {

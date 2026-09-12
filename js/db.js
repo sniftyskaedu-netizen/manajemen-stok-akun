@@ -672,7 +672,12 @@ class AccExpressDB {
   // --- Accounts CRUD ---
   getAccounts() {
     this.updateAutomaticExpirations();
-    return this._get(this.STORAGE_KEYS.ACCOUNTS);
+    const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    return accounts.sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0));
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0));
+      return dateB - dateA;
+    });
   }
 
   // --- CEK PERINGATAN DUPLIKAT EMAIL, PASSWORD, ATAU LINK DI DAFTAR AKUN ---
@@ -889,7 +894,12 @@ class AccExpressDB {
 
   // --- Transactions ---
   getTransactions() {
-    return this._get(this.STORAGE_KEYS.TRANSACTIONS);
+    const txs = this._get(this.STORAGE_KEYS.TRANSACTIONS);
+    return txs.sort((a, b) => {
+      const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+      const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+      return dateB - dateA;
+    });
   }
 
   async addTransaction(txData) {
