@@ -1106,9 +1106,15 @@
 
       <!-- FILTER & TOMBOL TAMBAH DENGAN SPACE EFISIEN -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
-        <select id="idKeyCategoryFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); min-width: 140px; flex: 0.7;">
-          <option value="">Semua Kategori</option>
-        </select>
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 180px;">
+          <select id="idKeyCategoryFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1;">
+            <option value="">Semua Kategori</option>
+          </select>
+          <button type="button" id="deleteIdKeyCategoryBtn" class="btn btn-secondary btn-sm" title="Hapus Kategori Terpilih"
+            style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.78rem; display: none; border-color: var(--status-expired); color: var(--status-expired); white-space: nowrap;">
+            <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Hapus Kategori
+          </button>
+        </div>
         <input type="text" id="idKeySearchInput" class="form-input" placeholder="Cari Enrollment Key / Class ID..."
           style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1; min-width: 160px;">
         <button type="button" id="openAddIdKeyModalBtn" class="btn btn-primary btn-sm" style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.8rem; white-space: nowrap;">

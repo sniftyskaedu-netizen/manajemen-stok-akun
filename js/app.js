@@ -607,6 +607,23 @@ class AccExpressApp {
       this.renderIdKeyTable();
     });
 
+    document.getElementById('deleteIdKeyCategoryBtn')?.addEventListener('click', async () => {
+      const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
+      const selectedCat = categoryFilterSelect?.value;
+      if (!selectedCat) {
+        this.showToast('Silakan pilih kategori yang ingin dihapus terlebih dahulu.', 'error');
+        return;
+      }
+
+      if (confirm(`Apakah Anda yakin ingin menghapus kategori "${selectedCat}"?\n\nSemua Enrollment Key pada kategori ini akan dialihkan ke kategori default.`)) {
+        await db.deleteIdKeyCategory(selectedCat);
+        db.addActivityLog(this.currentAdmin || 'staff', 'Kategori Enrollment Key Dihapus', 'id_key', `Hapus Kategori: ${selectedCat}`);
+        this.showToast(`✓ Kategori "${selectedCat}" berhasil dihapus.`, 'info');
+        if (categoryFilterSelect) categoryFilterSelect.value = '';
+        this.renderIdKeyTable();
+      }
+    });
+
     document.getElementById('idKeyForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.handleSaveIdKey();
@@ -2530,6 +2547,15 @@ class AccExpressApp {
       const currentSelected = categoryFilterSelect.value;
       categoryFilterSelect.innerHTML = `<option value="">Semua Kategori</option>` + 
         uniqueCategories.map(cat => `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`).join('');
+    }
+
+    const deleteCatBtn = document.getElementById('deleteIdKeyCategoryBtn');
+    if (deleteCatBtn) {
+      if (categoryFilterSelect && categoryFilterSelect.value) {
+        deleteCatBtn.style.display = 'inline-flex';
+      } else {
+        deleteCatBtn.style.display = 'none';
+      }
     }
 
     const categoryFilterVal = (categoryFilterSelect?.value || '').trim().toLowerCase();

@@ -774,6 +774,32 @@ class AccExpressDB {
     return true;
   }
 
+  async deleteIdKeyCategory(categoryName) {
+    const cleanCat = String(categoryName || '').trim();
+    if (!cleanCat) return false;
+
+    let keys = this.getIdKeys();
+    let updated = false;
+
+    keys = keys.map(k => {
+      if ((k.category || '').trim() === cleanCat) {
+        updated = true;
+        return {
+          ...k,
+          category: 'Turnitin No Repository',
+          updated_at: new Date().toISOString()
+        };
+      }
+      return k;
+    });
+
+    if (updated) {
+      this._set(this.STORAGE_KEYS.ID_KEYS, keys);
+      await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, keys);
+    }
+    return true;
+  }
+
   // --- Products CRUD ---
   getProducts() {
     return this._get(this.STORAGE_KEYS.PRODUCTS);
