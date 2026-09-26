@@ -2,6 +2,14 @@ import { db } from './db.js';
 import { CryptoUtil } from './crypto.js';
 import { TemplateEngine } from './template.js';
 
+function debounce(fn, delay = 150) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 class AccExpressApp {
   constructor() {
     this.currentAdmin = sessionStorage.getItem('accexpress_admin') || null;
@@ -15,6 +23,15 @@ class AccExpressApp {
     this.currentBoldStyle = 'UNICODE';
     this.previewIndo = '';
     this.previewEng = '';
+    this._iconFrame = null;
+  }
+
+  refreshIcons() {
+    if (this._iconFrame) return;
+    this._iconFrame = requestAnimationFrame(() => {
+      if (window.lucide) window.lucide.createIcons();
+      this._iconFrame = null;
+    });
   }
 
   async init() {
@@ -30,9 +47,7 @@ class AccExpressApp {
     this.updateAdminAuthState();
     this.restoreSavedViewState();
 
-    if (window.lucide) {
-      window.lucide.createIcons();
-    }
+    this.refreshIcons();
   }
 
   // --- RESTORE VIEW STATE ON REFRESH ---
@@ -599,9 +614,9 @@ class AccExpressApp {
       }
     });
 
-    document.getElementById('idKeySearchInput')?.addEventListener('input', () => {
+    document.getElementById('idKeySearchInput')?.addEventListener('input', debounce(() => {
       this.renderIdKeyTable();
-    });
+    }, 150));
 
     document.getElementById('idKeyCategoryFilter')?.addEventListener('change', () => {
       this.renderIdKeyTable();
@@ -821,12 +836,14 @@ class AccExpressApp {
       this.downloadAccountsExcel('admin');
     });
 
+    const debouncedRenderAdmin = debounce(() => this.renderAdminAccounts(), 150);
     ['adminAccSearch', 'adminAccProductFilter', 'adminAccStatusFilter'].forEach(id => {
-      document.getElementById(id)?.addEventListener('input', () => this.renderAdminAccounts());
+      document.getElementById(id)?.addEventListener('input', debouncedRenderAdmin);
     });
 
+    const debouncedRenderInv = debounce(() => this.renderInventoryTable(), 150);
     ['invSearchInput', 'invProductFilter', 'invStatusFilter'].forEach(id => {
-      document.getElementById(id)?.addEventListener('input', () => this.renderInventoryTable());
+      document.getElementById(id)?.addEventListener('input', debouncedRenderInv);
     });
   }
 
