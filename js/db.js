@@ -781,12 +781,15 @@ class AccExpressDB {
     let keys = this.getIdKeys();
     let updated = false;
 
+    const otherCats = Array.from(new Set(keys.map(k => (k.category || '').trim()).filter(c => c && c !== cleanCat)));
+    const fallbackCategory = otherCats.length > 0 ? otherCats[0] : 'Umum';
+
     keys = keys.map(k => {
       if ((k.category || '').trim() === cleanCat) {
         updated = true;
         return {
           ...k,
-          category: 'Turnitin No Repository',
+          category: fallbackCategory,
           updated_at: new Date().toISOString()
         };
       }

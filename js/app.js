@@ -2512,7 +2512,10 @@ class AccExpressApp {
     const idKeys = db.getIdKeys();
     const dbCategories = idKeys.map(k => (k.category || '').trim()).filter(Boolean);
 
-    let allCategories = Array.from(new Set([...dbCategories, 'Turnitin No Repository', 'Turnitin Repository', 'Moodle LMS'])).sort();
+    let allCategories = Array.from(new Set(dbCategories)).sort();
+    if (allCategories.length === 0) {
+      allCategories = ['Turnitin No Repository'];
+    }
 
     const targetVal = (selectedVal || '').trim();
     if (targetVal && targetVal !== '__NEW_CATEGORY__' && !allCategories.includes(targetVal)) {
