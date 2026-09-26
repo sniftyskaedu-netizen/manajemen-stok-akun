@@ -609,16 +609,34 @@ class AccExpressApp {
 
     document.getElementById('deleteIdKeyCategoryBtn')?.addEventListener('click', async () => {
       const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
-      const selectedCat = categoryFilterSelect?.value;
-      if (!selectedCat) {
-        this.showToast('Silakan pilih kategori yang ingin dihapus terlebih dahulu.', 'error');
+      const idKeys = db.getIdKeys();
+      const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort();
+
+      if (uniqueCategories.length === 0) {
+        this.showToast('Belum ada kategori yang tersimpan.', 'info');
         return;
       }
 
-      if (confirm(`Apakah Anda yakin ingin menghapus kategori "${selectedCat}"?\n\nSemua Enrollment Key pada kategori ini akan dialihkan ke kategori default.`)) {
-        await db.deleteIdKeyCategory(selectedCat);
-        db.addActivityLog(this.currentAdmin || 'staff', 'Kategori Enrollment Key Dihapus', 'id_key', `Hapus Kategori: ${selectedCat}`);
-        this.showToast(`✓ Kategori "${selectedCat}" berhasil dihapus.`, 'info');
+      let catToDelete = categoryFilterSelect?.value;
+
+      if (!catToDelete) {
+        const promptMsg = `Masukkan / pilih nama kategori yang ingin dihapus:\n\nDaftar Kategori:\n` + 
+          uniqueCategories.map((c, i) => `${i + 1}. ${c}`).join('\n');
+        const inputCat = prompt(promptMsg, uniqueCategories[0]);
+        if (!inputCat) return;
+        
+        const matched = uniqueCategories.find(c => c.toLowerCase() === inputCat.trim().toLowerCase());
+        if (!matched) {
+          this.showToast(`Kategori "${inputCat}" tidak ditemukan.`, 'error');
+          return;
+        }
+        catToDelete = matched;
+      }
+
+      if (confirm(`Apakah Anda yakin ingin menghapus kategori "${catToDelete}"?\n\nSemua Enrollment Key pada kategori ini akan dialihkan ke kategori default.`)) {
+        await db.deleteIdKeyCategory(catToDelete);
+        db.addActivityLog(this.currentAdmin || 'staff', 'Kategori Enrollment Key Dihapus', 'id_key', `Hapus Kategori: ${catToDelete}`);
+        this.showToast(`✓ Kategori "${catToDelete}" berhasil dihapus.`, 'info');
         if (categoryFilterSelect) categoryFilterSelect.value = '';
         this.renderIdKeyTable();
       }
@@ -2551,11 +2569,7 @@ class AccExpressApp {
 
     const deleteCatBtn = document.getElementById('deleteIdKeyCategoryBtn');
     if (deleteCatBtn) {
-      if (categoryFilterSelect && categoryFilterSelect.value) {
-        deleteCatBtn.style.display = 'inline-flex';
-      } else {
-        deleteCatBtn.style.display = 'none';
-      }
+      deleteCatBtn.style.display = 'inline-flex';
     }
 
     const categoryFilterVal = (categoryFilterSelect?.value || '').trim().toLowerCase();
