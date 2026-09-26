@@ -2701,12 +2701,12 @@ class AccExpressApp {
 
     const enrollment = document.getElementById('idKeyFormEnrollment')?.value.trim() || '';
     const classId = document.getElementById('idKeyFormClassId')?.value.trim() || '';
-    const assignment = document.getElementById('idKeyFormAssignment')?.value.trim() || '-';
+    const assignment = document.getElementById('idKeyFormAssignment')?.value.trim() || '';
     const duration = document.getElementById('idKeyFormDuration')?.value.trim() || '';
     const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
 
-    if (!category || !enrollment || !duration) {
-      this.showToast('Silakan pilih/isi Kategori, Enrollment Key, dan Durasi (Hari).', 'error');
+    if (!category || !enrollment || !assignment || !duration) {
+      this.showToast('Silakan isi Kategori, Enrollment Key, Assignment, dan Durasi (Hari).', 'error');
       return;
     }
 
