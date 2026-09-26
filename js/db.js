@@ -772,6 +772,20 @@ class AccExpressDB {
     return savedKey;
   }
 
+  isDuplicateIdKey(enrollmentKey, excludeId = null) {
+    if (!enrollmentKey) return false;
+    const cleanKey = String(enrollmentKey).trim().toLowerCase();
+    const cleanExcludeId = String(excludeId || '').trim();
+
+    const keys = this.getIdKeys();
+    return keys.some(k => {
+      if (cleanExcludeId && String(k.id || '').trim() === cleanExcludeId) {
+        return false;
+      }
+      return String(k.enrollment_key || '').trim().toLowerCase() === cleanKey;
+    });
+  }
+
   async deleteIdKey(id) {
     const cleanId = String(id || '').trim();
     let keys = this.getIdKeys();

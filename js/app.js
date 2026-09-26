@@ -2740,6 +2740,11 @@ class AccExpressApp {
       return;
     }
 
+    if (db.isDuplicateIdKey(enrollment, id)) {
+      this.showToast(`⚠️ Enrollment Key "${enrollment}" sudah terdaftar di database. Harap gunakan Enrollment Key yang berbeda.`, 'error');
+      return;
+    }
+
     await db.saveIdKey({
       id,
       category,
