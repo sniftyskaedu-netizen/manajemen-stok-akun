@@ -2739,12 +2739,12 @@ class AccExpressApp {
       enrollment_key: enrollment,
       class_id: classId,
       id_key: classId,
-      assignment,
+      assignment: assignmentNum,
       duration: durationNum,
       notes
     });
 
-    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Assignment: ${assignment} | Durasi: ${durationNum} Hari`);
+    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Assignment: ${assignmentNum} | Durasi: ${durationNum} Hari`);
     this.showToast(`✓ Data Enrollment Key "${enrollment}" berhasil disimpan!`, 'success');
     this.closeModal('addIdKeyFormModal');
     this.renderIdKeyTable();
