@@ -2506,14 +2506,11 @@ class AccExpressApp {
 
     tbody.innerHTML = filtered.map(item => {
       const classIdText = item.class_id || item.id_key || '-';
-      const durationDays = Number(item.duration) || Number(item.assignment_count) || 1;
-      const categoryName = item.category || 'Turnitin No Repository';
+      const durationDays = Number(item.duration) || 1;
+      const assignmentText = item.assignment || (item.assignment_count ? `${item.assignment_count} Assignment` : '-');
 
       return `
         <tr>
-          <td>
-            <span class="badge badge-accent" style="font-size: 0.74rem; font-weight: 600; text-transform: none;">${categoryName}</span>
-          </td>
           <td>
             <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
               <code style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--bg-surface-hover); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--status-available); border: 1px solid var(--border-color);">${item.enrollment_key}</code>
@@ -2521,6 +2518,9 @@ class AccExpressApp {
                 <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
               </button>
             </div>
+          </td>
+          <td>
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">${assignmentText}</span>
           </td>
           <td>
             ${classIdText && classIdText !== '-' ? `
@@ -2569,7 +2569,9 @@ class AccExpressApp {
           if (catInput) catInput.value = item.category || 'Turnitin No Repository';
           document.getElementById('idKeyFormEnrollment').value = item.enrollment_key || '';
           document.getElementById('idKeyFormClassId').value = item.class_id || item.id_key || '';
-          document.getElementById('idKeyFormDuration').value = item.duration || item.assignment_count || 1;
+          const assignInput = document.getElementById('idKeyFormAssignment');
+          if (assignInput) assignInput.value = item.assignment || item.assignment_count || '';
+          document.getElementById('idKeyFormDuration').value = item.duration || 1;
           const notesEl = document.getElementById('idKeyFormNotes');
           if (notesEl) notesEl.value = item.notes || '';
           
@@ -2603,6 +2605,7 @@ class AccExpressApp {
     const category = document.getElementById('idKeyFormCategory')?.value.trim() || 'Turnitin No Repository';
     const enrollment = document.getElementById('idKeyFormEnrollment')?.value.trim() || '';
     const classId = document.getElementById('idKeyFormClassId')?.value.trim() || '';
+    const assignment = document.getElementById('idKeyFormAssignment')?.value.trim() || '-';
     const duration = document.getElementById('idKeyFormDuration')?.value.trim() || '';
     const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
 
@@ -2623,12 +2626,13 @@ class AccExpressApp {
       enrollment_key: enrollment,
       class_id: classId,
       id_key: classId,
+      assignment,
       duration: durationNum,
       notes
     });
 
-    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Class ID: ${classId} | Durasi: ${durationNum} Hari`);
-    this.showToast(`✓ Data Enrollment Key "${enrollment}" (${category}) berhasil disimpan!`, 'success');
+    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Assignment: ${assignment} | Durasi: ${durationNum} Hari`);
+    this.showToast(`✓ Data Enrollment Key "${enrollment}" berhasil disimpan!`, 'success');
     this.closeModal('addIdKeyFormModal');
     this.renderIdKeyTable();
   }

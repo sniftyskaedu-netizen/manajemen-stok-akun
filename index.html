@@ -7,7 +7,7 @@
   <title>AccExpress Seller Hub — Manajemen & Pengiriman Akun Digital</title>
   <meta name="description"
     content="AccExpress Seller Hub - Kelola dan kirim akun digital premium dengan cepat, mudah, dan terorganisir.">
-  <link rel="stylesheet" href="css/styles.css?v=1.1">
+  <link rel="stylesheet" href="css/styles.css?v=1.2">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- SheetJS Library for Multi-Sheet Excel Export -->
@@ -1121,8 +1121,8 @@
         <table class="data-table" style="font-size: 0.82rem;">
           <thead>
             <tr>
-              <th>Kategori</th>
               <th>Enrollment Key</th>
+              <th>Assignment</th>
               <th>Class ID</th>
               <th style="text-align: center;">Durasi</th>
               <th style="text-align: right;">Aksi</th>
@@ -1170,6 +1170,11 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Assignment <span style="font-size:0.72rem; color:var(--text-muted);">(Opsional / e.g. 5 Assignment)</span></label>
+          <input type="text" id="idKeyFormAssignment" class="form-input" placeholder="e.g. 5 Assignment atau Slot 1">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Durasi (Hari) <span style="color:var(--status-expired)">*</span></label>
           <input type="number" id="idKeyFormDuration" class="form-input" placeholder="Masukkan angka harian (misal: 2)" min="1" required>
           <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Durasi otomatis dihitung harian (contoh: isi 2 = 2 Hari).</span>
@@ -1183,7 +1188,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=1.1"></script>
+  <script type="module" src="js/app.js?v=1.2"></script>
 </body>
 
 </html>

@@ -91,12 +91,13 @@ CREATE TABLE IF NOT EXISTS accexpress_admin_users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. ENROLLMENT KEYS / ID KEYS TABLE (DENGAN KOLOM KATEGORI)
+-- 8. ENROLLMENT KEYS / ID KEYS TABLE (DENGAN KOLOM KATEGORI & ASSIGNMENT)
 CREATE TABLE IF NOT EXISTS accexpress_id_keys (
   id TEXT PRIMARY KEY,
   category TEXT DEFAULT 'Turnitin No Repository',
   id_key TEXT,
   class_id TEXT,
+  assignment TEXT DEFAULT '-',
   enrollment_key TEXT NOT NULL,
   duration INT DEFAULT 1,
   notes TEXT,
@@ -105,7 +106,7 @@ CREATE TABLE IF NOT EXISTS accexpress_id_keys (
 );
 
 -- ------------------------------------------------------------
--- AUTOMATIC MIGRATION: ADD CATEGORY COLUMN IF NOT EXISTS
+-- AUTOMATIC MIGRATION: ADD CATEGORY & ASSIGNMENT COLUMNS IF NOT EXISTS
 -- ------------------------------------------------------------
 DO $$ 
 BEGIN
@@ -114,6 +115,13 @@ BEGIN
     WHERE table_name='accexpress_id_keys' AND column_name='category'
   ) THEN
     ALTER TABLE accexpress_id_keys ADD COLUMN category TEXT DEFAULT 'Turnitin No Repository';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='accexpress_id_keys' AND column_name='assignment'
+  ) THEN
+    ALTER TABLE accexpress_id_keys ADD COLUMN assignment TEXT DEFAULT '-';
   END IF;
 END $$;
 

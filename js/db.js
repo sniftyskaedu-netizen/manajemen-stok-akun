@@ -666,6 +666,7 @@ class AccExpressDB {
           category: 'Turnitin No Repository',
           id_key: '45829102',
           class_id: '45829102',
+          assignment: '5 Assignment',
           enrollment_key: 'Turnitin2026',
           duration: 2,
           notes: 'Kelas Turnitin Regular A',
@@ -676,6 +677,7 @@ class AccExpressDB {
           category: 'Turnitin Repository',
           id_key: '45829103',
           class_id: '45829103',
+          assignment: '10 Assignment',
           enrollment_key: 'ExpressPass88',
           duration: 7,
           notes: 'Kelas Turnitin Premium B',
@@ -686,6 +688,7 @@ class AccExpressDB {
           category: 'Moodle LMS',
           id_key: '45829104',
           class_id: '45829104',
+          assignment: '3 Slot',
           enrollment_key: 'ClassKey99',
           duration: 30,
           notes: 'Moodle LMS Fast Track',
@@ -699,7 +702,8 @@ class AccExpressDB {
       const items = JSON.parse(raw) || [];
       return items.map(k => ({
         ...k,
-        category: k.category || 'Turnitin No Repository'
+        category: k.category || 'Turnitin No Repository',
+        assignment: k.assignment || (k.assignment_count ? `${k.assignment_count} Assignment` : '-')
       }));
     } catch (e) {
       return [];
@@ -716,8 +720,9 @@ class AccExpressDB {
     let savedKey = null;
 
     const classIdVal = keyData.class_id || keyData.id_key || '';
-    const durationVal = Number(keyData.duration) || Number(keyData.assignment_count) || 1;
+    const durationVal = Number(keyData.duration) || 1;
     const categoryVal = (keyData.category || '').trim() || 'Turnitin No Repository';
+    const assignmentVal = (keyData.assignment || '').trim() || '-';
 
     if (keyData.id && String(keyData.id).trim() !== '') {
       const idx = keys.findIndex(k => k.id === keyData.id);
@@ -727,6 +732,8 @@ class AccExpressDB {
           category: categoryVal,
           id_key: classIdVal,
           class_id: classIdVal,
+          assignment: assignmentVal,
+          assignment_count: assignmentVal,
           enrollment_key: keyData.enrollment_key,
           duration: durationVal,
           notes: keyData.notes || '',
@@ -742,6 +749,8 @@ class AccExpressDB {
         category: categoryVal,
         id_key: classIdVal,
         class_id: classIdVal,
+        assignment: assignmentVal,
+        assignment_count: assignmentVal,
         enrollment_key: keyData.enrollment_key,
         duration: durationVal,
         notes: keyData.notes || '',
