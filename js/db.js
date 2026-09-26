@@ -50,39 +50,13 @@ class AccExpressDB {
         fetchAllFromSupabase(SUPABASE_TABLES.ID_KEYS)
       ]);
 
-      if (remoteProducts && remoteProducts.length > 0) {
-        this._set(this.STORAGE_KEYS.PRODUCTS, remoteProducts);
-      }
-      if (remoteAccounts && remoteAccounts.length > 0) {
-        this._set(this.STORAGE_KEYS.ACCOUNTS, remoteAccounts);
-      }
-      if (remoteTemplates && remoteTemplates.length > 0) {
-        this._set(this.STORAGE_KEYS.TEMPLATES, remoteTemplates);
-      }
-      if (remoteTx && remoteTx.length > 0) {
-        this._set(this.STORAGE_KEYS.TRANSACTIONS, remoteTx);
-      }
-      if (remoteLogs && remoteLogs.length > 0) {
-        this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, remoteLogs);
-      }
-      if (remoteAdmin && remoteAdmin.length > 0) {
-        this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
-      }
-      if (Array.isArray(remoteIdKeys)) {
-        if (remoteIdKeys.length > 0) {
-          this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
-        } else {
-          const rawLocal = localStorage.getItem(this.STORAGE_KEYS.ID_KEYS);
-          if (rawLocal) {
-            try {
-              const parsed = JSON.parse(rawLocal);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, parsed);
-              }
-            } catch (err) {}
-          }
-        }
-      }
+      if (Array.isArray(remoteProducts)) this._set(this.STORAGE_KEYS.PRODUCTS, remoteProducts);
+      if (Array.isArray(remoteAccounts)) this._set(this.STORAGE_KEYS.ACCOUNTS, remoteAccounts);
+      if (Array.isArray(remoteTemplates)) this._set(this.STORAGE_KEYS.TEMPLATES, remoteTemplates);
+      if (Array.isArray(remoteTx)) this._set(this.STORAGE_KEYS.TRANSACTIONS, remoteTx);
+      if (Array.isArray(remoteLogs)) this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, remoteLogs);
+      if (Array.isArray(remoteAdmin)) this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
+      if (Array.isArray(remoteIdKeys)) this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
       if (remoteSettings && remoteSettings.length > 0) {
         const settingsRecord = remoteSettings.find(s => s.id === 'main_settings') || remoteSettings[0];
         if (settingsRecord) {
@@ -671,48 +645,7 @@ class AccExpressDB {
   // --- ID Keys & Enrollment CRUD ---
   getIdKeys() {
     const raw = localStorage.getItem(this.STORAGE_KEYS.ID_KEYS);
-    if (raw === null) {
-      const defaultSample = [
-        {
-          id: 'idkey_1',
-          category: 'Turnitin No Repository',
-          id_key: '45829102',
-          class_id: '45829102',
-          assignment: 5,
-          assignment_count: 5,
-          enrollment_key: 'Turnitin2026',
-          duration: 2,
-          notes: 'Kelas Turnitin Regular A',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'idkey_2',
-          category: 'Turnitin Repository',
-          id_key: '45829103',
-          class_id: '45829103',
-          assignment: 10,
-          assignment_count: 10,
-          enrollment_key: 'ExpressPass88',
-          duration: 7,
-          notes: 'Kelas Turnitin Premium B',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'idkey_3',
-          category: 'Moodle LMS',
-          id_key: '45829104',
-          class_id: '45829104',
-          assignment: 3,
-          assignment_count: 3,
-          enrollment_key: 'ClassKey99',
-          duration: 30,
-          notes: 'Moodle LMS Fast Track',
-          created_at: new Date().toISOString()
-        }
-      ];
-      this._set(this.STORAGE_KEYS.ID_KEYS, defaultSample);
-      return defaultSample;
-    }
+    if (!raw) return [];
     try {
       const items = JSON.parse(raw) || [];
       return items.map(k => {
@@ -720,8 +653,14 @@ class AccExpressDB {
         return {
           ...k,
           category: k.category || 'Turnitin No Repository',
+          id_key: k.id_key || k.class_id || '',
+          class_id: k.class_id || k.id_key || '',
           assignment: num,
-          assignment_count: num
+          assignment_count: num,
+          enrollment_key: k.enrollment_key || '',
+          duration: Number(k.duration) || 1,
+          notes: k.notes || '',
+          created_at: k.created_at || new Date().toISOString()
         };
       });
     } catch (e) {
