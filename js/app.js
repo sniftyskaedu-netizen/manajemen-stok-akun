@@ -2475,12 +2475,9 @@ class AccExpressApp {
     if (!selectEl) return;
 
     const idKeys = db.getIdKeys();
-    const products = db.getProducts();
-
     const dbCategories = idKeys.map(k => (k.category || '').trim()).filter(Boolean);
-    const prodNames = products.map(p => (p.name || '').trim()).filter(Boolean);
 
-    let allCategories = Array.from(new Set([...dbCategories, ...prodNames, 'Turnitin No Repository', 'Turnitin Repository', 'Moodle LMS'])).sort();
+    let allCategories = Array.from(new Set([...dbCategories, 'Turnitin No Repository', 'Turnitin Repository', 'Moodle LMS'])).sort();
 
     const targetVal = (selectedVal || '').trim();
     if (targetVal && targetVal !== '__NEW_CATEGORY__' && !allCategories.includes(targetVal)) {
