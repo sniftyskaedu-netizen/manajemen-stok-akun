@@ -575,10 +575,28 @@ class AccExpressApp {
     document.getElementById('openAddIdKeyModalBtn')?.addEventListener('click', () => {
       document.getElementById('idKeyForm')?.reset();
       document.getElementById('idKeyFormId').value = '';
+      this.populateIdKeyCategoryDropdown('');
       const titleEl = document.getElementById('idKeyModalFormTitle');
       if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Tambah Enrollment Key';
       if (window.lucide) window.lucide.createIcons();
       this.openModal('addIdKeyFormModal');
+    });
+
+    document.getElementById('idKeyFormCategorySelect')?.addEventListener('change', (e) => {
+      const customInput = document.getElementById('idKeyFormCategoryCustom');
+      if (e.target.value === '__NEW_CATEGORY__') {
+        if (customInput) {
+          customInput.style.display = 'block';
+          customInput.required = true;
+          customInput.focus();
+        }
+      } else {
+        if (customInput) {
+          customInput.style.display = 'none';
+          customInput.value = '';
+          customInput.required = false;
+        }
+      }
     });
 
     document.getElementById('idKeySearchInput')?.addEventListener('input', () => {
@@ -2451,6 +2469,52 @@ class AccExpressApp {
     URL.revokeObjectURL(link.href);
   }
 
+  populateIdKeyCategoryDropdown(selectedVal = '') {
+    const selectEl = document.getElementById('idKeyFormCategorySelect');
+    const customInput = document.getElementById('idKeyFormCategoryCustom');
+    if (!selectEl) return;
+
+    const idKeys = db.getIdKeys();
+    const products = db.getProducts();
+
+    const dbCategories = idKeys.map(k => (k.category || '').trim()).filter(Boolean);
+    const prodNames = products.map(p => (p.name || '').trim()).filter(Boolean);
+
+    let allCategories = Array.from(new Set([...dbCategories, ...prodNames, 'Turnitin No Repository', 'Turnitin Repository', 'Moodle LMS'])).sort();
+
+    const targetVal = (selectedVal || '').trim();
+    if (targetVal && targetVal !== '__NEW_CATEGORY__' && !allCategories.includes(targetVal)) {
+      allCategories.unshift(targetVal);
+    }
+
+    selectEl.innerHTML = allCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('') +
+      `<option value="__NEW_CATEGORY__">+ Tambah Kategori Baru...</option>`;
+
+    if (targetVal && targetVal !== '__NEW_CATEGORY__') {
+      selectEl.value = targetVal;
+      if (customInput) {
+        customInput.style.display = 'none';
+        customInput.value = '';
+        customInput.required = false;
+      }
+    } else if (targetVal === '__NEW_CATEGORY__') {
+      selectEl.value = '__NEW_CATEGORY__';
+      if (customInput) {
+        customInput.style.display = 'block';
+        customInput.required = true;
+      }
+    } else {
+      if (allCategories.length > 0) {
+        selectEl.value = allCategories[0];
+      }
+      if (customInput) {
+        customInput.style.display = 'none';
+        customInput.value = '';
+        customInput.required = false;
+      }
+    }
+  }
+
   // --- RENDER & MANAGE ENROLLMENT KEY TABLE ---
   renderIdKeyTable() {
     const idKeys = db.getIdKeys();
@@ -2460,9 +2524,8 @@ class AccExpressApp {
     const tbody = document.getElementById('idKeyTbody');
     if (!tbody) return;
 
-    // Populate category dropdown filter & datalist options dynamically
+    // Populate category dropdown filter options dynamically
     const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
-    const datalistEl = document.getElementById('idKeyCategoryList');
 
     const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort();
     
@@ -2470,13 +2533,6 @@ class AccExpressApp {
       const currentSelected = categoryFilterSelect.value;
       categoryFilterSelect.innerHTML = `<option value="">Semua Kategori</option>` + 
         uniqueCategories.map(cat => `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`).join('');
-    }
-
-    if (datalistEl) {
-      const products = db.getProducts();
-      const productNames = products.map(p => p.name);
-      const allSuggestions = Array.from(new Set([...uniqueCategories, ...productNames])).sort();
-      datalistEl.innerHTML = allSuggestions.map(s => `<option value="${s}">`).join('');
     }
 
     const categoryFilterVal = (categoryFilterSelect?.value || '').trim().toLowerCase();
@@ -2565,8 +2621,7 @@ class AccExpressApp {
         const item = db.getIdKeyById(id);
         if (item) {
           document.getElementById('idKeyFormId').value = item.id;
-          const catInput = document.getElementById('idKeyFormCategory');
-          if (catInput) catInput.value = item.category || 'Turnitin No Repository';
+          this.populateIdKeyCategoryDropdown(item.category || 'Turnitin No Repository');
           document.getElementById('idKeyFormEnrollment').value = item.enrollment_key || '';
           document.getElementById('idKeyFormClassId').value = item.class_id || item.id_key || '';
           const assignInput = document.getElementById('idKeyFormAssignment');
@@ -2602,7 +2657,11 @@ class AccExpressApp {
 
   async handleSaveIdKey() {
     const id = document.getElementById('idKeyFormId')?.value || '';
-    const category = document.getElementById('idKeyFormCategory')?.value.trim() || 'Turnitin No Repository';
+    const selectVal = document.getElementById('idKeyFormCategorySelect')?.value;
+    const customVal = document.getElementById('idKeyFormCategoryCustom')?.value.trim();
+    let category = selectVal === '__NEW_CATEGORY__' ? customVal : selectVal;
+    category = (category || '').trim();
+
     const enrollment = document.getElementById('idKeyFormEnrollment')?.value.trim() || '';
     const classId = document.getElementById('idKeyFormClassId')?.value.trim() || '';
     const assignment = document.getElementById('idKeyFormAssignment')?.value.trim() || '-';
@@ -2610,7 +2669,7 @@ class AccExpressApp {
     const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
 
     if (!category || !enrollment || !duration) {
-      this.showToast('Silakan isi Kategori, Enrollment Key, dan Durasi (Hari).', 'error');
+      this.showToast('Silakan pilih/isi Kategori, Enrollment Key, dan Durasi (Hari).', 'error');
       return;
     }
 

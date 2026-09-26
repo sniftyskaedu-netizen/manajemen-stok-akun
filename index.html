@@ -1155,8 +1155,10 @@
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Kategori / Produk <span style="color:var(--status-expired)">*</span></label>
-          <input type="text" id="idKeyFormCategory" class="form-input" placeholder="e.g. Turnitin No Repository, Moodle, dll." list="idKeyCategoryList" required>
-          <datalist id="idKeyCategoryList"></datalist>
+          <select id="idKeyFormCategorySelect" class="form-select" required>
+            <!-- Dynamic Category options -->
+          </select>
+          <input type="text" id="idKeyFormCategoryCustom" class="form-input" placeholder="Tulis nama kategori baru..." style="display: none; margin-top: 0.4rem;">
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
