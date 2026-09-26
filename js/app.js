@@ -610,7 +610,7 @@ class AccExpressApp {
     document.getElementById('deleteIdKeyCategoryBtn')?.addEventListener('click', async () => {
       const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
       const idKeys = db.getIdKeys();
-      const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort();
+      const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
       if (uniqueCategories.length === 0) {
         this.showToast('Belum ada kategori yang tersimpan.', 'info');
@@ -1034,7 +1034,9 @@ class AccExpressApp {
 
   // --- POPULATE PRODUCT DROPDOWNS ---
   populateProductDropdowns(currentAccProductId = null, currentTplProductId = null) {
-    const activeProducts = db.getActiveProducts();
+    const rawActiveProducts = db.getActiveProducts();
+    const sortProds = (list) => [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+    const activeProducts = sortProds(rawActiveProducts);
 
     const qaDropdown = document.getElementById('qaProduct');
     if (qaDropdown) {
@@ -1067,6 +1069,7 @@ class AccExpressApp {
         const inactiveProd = db.getProductById(currentAccProductId);
         if (inactiveProd) prodsForAcc.push(inactiveProd);
       }
+      prodsForAcc = sortProds(prodsForAcc);
       accProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Produk --</option>' +
         prodsForAcc.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
     }
@@ -2512,7 +2515,7 @@ class AccExpressApp {
     const idKeys = db.getIdKeys();
     const dbCategories = idKeys.map(k => (k.category || '').trim()).filter(Boolean);
 
-    let allCategories = Array.from(new Set(dbCategories)).sort();
+    let allCategories = Array.from(new Set(dbCategories)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     if (allCategories.length === 0) {
       allCategories = ['Turnitin No Repository'];
     }
@@ -2562,7 +2565,7 @@ class AccExpressApp {
     // Populate category dropdown filter options dynamically
     const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
 
-    const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort();
+    const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     
     if (categoryFilterSelect) {
       const currentSelected = categoryFilterSelect.value;
