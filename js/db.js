@@ -68,8 +68,20 @@ class AccExpressDB {
       if (remoteAdmin && remoteAdmin.length > 0) {
         this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
       }
-      if (remoteIdKeys && remoteIdKeys.length > 0) {
-        this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
+      if (Array.isArray(remoteIdKeys)) {
+        if (remoteIdKeys.length > 0) {
+          this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
+        } else {
+          const rawLocal = localStorage.getItem(this.STORAGE_KEYS.ID_KEYS);
+          if (rawLocal) {
+            try {
+              const parsed = JSON.parse(rawLocal);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, parsed);
+              }
+            } catch (err) {}
+          }
+        }
       }
       if (remoteSettings && remoteSettings.length > 0) {
         const settingsRecord = remoteSettings.find(s => s.id === 'main_settings') || remoteSettings[0];
