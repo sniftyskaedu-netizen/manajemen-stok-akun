@@ -7,7 +7,7 @@
   <title>AccExpress Seller Hub — Manajemen & Pengiriman Akun Digital</title>
   <meta name="description"
     content="AccExpress Seller Hub - Kelola dan kirim akun digital premium dengan cepat, mudah, dan terorganisir.">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=1.1">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- SheetJS Library for Multi-Sheet Excel Export -->
@@ -69,18 +69,29 @@
             <i data-lucide="send" style="color: var(--accent-primary);"></i> Quick Access / Kirim Cepat
           </div>
 
-          <!-- TIPE AKSES ULTRA-MICRO PURE ICON TOGGLE DI POJOK KANAN -->
-          <div
-            style="display: flex; align-items: center; gap: 0.15rem; background: var(--bg-surface-hover); padding: 0.12rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
-            <button type="button" class="qa-type-btn active" data-type="ACCOUNT" title="Tipe Email & Password"
-              style="border:none; background: var(--accent-primary); color:#ffffff; width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
-              <i data-lucide="mail" style="width:12px; height:12px;"></i>
+          <!-- KANAN: ID KEY BUTTON & TIPE AKSES TOGGLE -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <!-- TOMBOL ULTRA-COMPACT LIHAT ID KEY & ENROLLMENT KEY -->
+            <button type="button" id="openIdKeyModalBtn" class="btn btn-secondary btn-sm" title="Lihat Data ID Key, Jumlah Assignment & Enrollment Key"
+              style="height: 26px; padding: 0.15rem 0.55rem; font-size: 0.76rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-surface-hover); color: var(--text-main); font-weight: 600; transition: all 0.2s ease;">
+              <i data-lucide="key" style="width: 12px; height: 12px; color: var(--accent-primary);"></i>
+              <span>ID Key</span>
+              <span id="idKeyBadgeCount" style="background: var(--accent-primary); color: #ffffff; font-size: 0.65rem; padding: 0.05rem 0.35rem; border-radius: 10px; font-weight: 700;">0</span>
             </button>
-            <button type="button" class="qa-type-btn" data-type="LINK" title="Tipe Link / URL Akses"
-              style="border:none; background:transparent; color:var(--text-muted); width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
-              <i data-lucide="link" style="width:12px; height:12px;"></i>
-            </button>
-            <input type="hidden" id="qaAccessType" value="ACCOUNT">
+
+            <!-- TIPE AKSES ULTRA-MICRO PURE ICON TOGGLE -->
+            <div
+              style="display: flex; align-items: center; gap: 0.15rem; background: var(--bg-surface-hover); padding: 0.12rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+              <button type="button" class="qa-type-btn active" data-type="ACCOUNT" title="Tipe Email & Password"
+                style="border:none; background: var(--accent-primary); color:#ffffff; width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
+                <i data-lucide="mail" style="width:12px; height:12px;"></i>
+              </button>
+              <button type="button" class="qa-type-btn" data-type="LINK" title="Tipe Link / URL Akses"
+                style="border:none; background:transparent; color:var(--text-muted); width:22px; height:22px; border-radius:var(--radius-full); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s ease;">
+                <i data-lucide="link" style="width:12px; height:12px;"></i>
+              </button>
+              <input type="hidden" id="qaAccessType" value="ACCOUNT">
+            </div>
           </div>
         </div>
 
@@ -213,32 +224,32 @@
 
         <!-- Filter & Search Controls -->
         <div class="filter-bar">
-          <div class="filter-group" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%;">
+          <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.45rem; width: 100%; max-width: 100%;">
             <input type="text" id="invSearchInput" class="form-input search-input" placeholder="Cari email / produk..."
-              style="height: 36px; padding: 0.4rem 0.75rem; font-size: 0.85rem; border-radius: var(--radius-sm); min-width: 180px; flex: 1;">
+              style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.8rem; border-radius: var(--radius-sm); width: 100%; max-width: 100%;">
 
-            <!-- GROUP SEJAJAR KESAMPING: FILTER PRODUK, FILTER STATUS, & TOMBOL REFRESH -->
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; flex-shrink: 0;">
-              <!-- Filter Kategori Produk -->
+            <!-- BARIS SEJAJAR 1 ROW: FILTER PRODUK, FILTER STATUS, & TOMBOL REFRESH -->
+            <div class="filter-controls-group" style="display: flex; align-items: center; gap: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
+              <!-- Filter Kategori Produk (Singkat: "Produk") -->
               <select id="invProductFilter" class="form-select"
-                style="width: auto; height: 36px; padding: 0.4rem 0.65rem; font-size: 0.85rem; border-radius: var(--radius-sm); cursor: pointer;">
-                <option value="">Semua Produk</option>
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;">
+                <option value="">Produk</option>
               </select>
 
-              <!-- Filter Status -->
+              <!-- Filter Status (Singkat: "Status") -->
               <select id="invStatusFilter" class="form-select"
-                style="width: auto; height: 36px; padding: 0.4rem 0.65rem; font-size: 0.85rem; border-radius: var(--radius-sm); cursor: pointer;">
-                <option value="">Semua Status</option>
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;">
+                <option value="">Status</option>
                 <option value="TERSEDIA">TERSEDIA</option>
                 <option value="TERKIRIM">TERKIRIM</option>
                 <option value="EXPIRED">EXPIRED</option>
               </select>
 
-              <!-- Tombol Refresh Pure Icon (Kotak Presisi 36x36px) -->
+              <!-- Tombol Refresh Pure Icon (Kotak Presisi 34x34px) -->
               <button id="refreshInventoryBtn" class="btn btn-secondary"
-                style="width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer; flex-shrink: 0;"
+                style="width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer; flex-shrink: 0;"
                 title="Refresh Stok Inventory">
-                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="refresh-cw" style="width: 15px; height: 15px;"></i>
               </button>
             </div>
           </div>
@@ -1083,7 +1094,96 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <!-- ID KEY & ENROLLMENT VIEWER MODAL (KOMPAK & TENTRAM DI QUICK ACCESS) -->
+  <div id="idKeyModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.45rem;">
+          <i data-lucide="key" style="color: var(--accent-primary);"></i> Enrollment Key
+        </h3>
+        <button class="modal-close-btn" data-close="idKeyModal">&times;</button>
+      </div>
+
+      <!-- FILTER & TOMBOL TAMBAH DENGAN SPACE EFISIEN -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
+        <select id="idKeyCategoryFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); min-width: 140px; flex: 0.7;">
+          <option value="">Semua Kategori</option>
+        </select>
+        <input type="text" id="idKeySearchInput" class="form-input" placeholder="Cari Enrollment Key / Class ID..."
+          style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1; min-width: 160px;">
+        <button type="button" id="openAddIdKeyModalBtn" class="btn btn-primary btn-sm" style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.8rem; white-space: nowrap;">
+          <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Enrollment Key
+        </button>
+      </div>
+
+      <!-- TABEL ULTRA-KOMPAK BERKOLOM PRESISI -->
+      <div class="table-responsive" style="max-height: 310px; overflow-y: auto; border-radius: var(--radius-sm);">
+        <table class="data-table" style="font-size: 0.82rem;">
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th>Enrollment Key</th>
+              <th>Class ID</th>
+              <th style="text-align: center;">Durasi</th>
+              <th style="text-align: right;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="idKeyTbody">
+            <!-- Dynamic ID Key rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
+          <i data-lucide="info" style="width: 13px; height: 13px; color: var(--accent-primary);"></i> Klik ikon 📋 pada Enrollment Key untuk menyalin.
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm" data-close="idKeyModal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT ID KEY MODAL FORM -->
+  <div id="addIdKeyFormModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="idKeyModalFormTitle"><i data-lucide="key"></i> Tambah Enrollment Key</h3>
+        <button class="modal-close-btn" data-close="addIdKeyFormModal">&times;</button>
+      </div>
+      <form id="idKeyForm">
+        <input type="hidden" id="idKeyFormId">
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Kategori / Produk <span style="color:var(--status-expired)">*</span></label>
+          <input type="text" id="idKeyFormCategory" class="form-input" placeholder="e.g. Turnitin No Repository, Moodle, dll." list="idKeyCategoryList" required>
+          <datalist id="idKeyCategoryList"></datalist>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Enrollment Key <span style="color:var(--status-expired)">*</span></label>
+          <input type="text" id="idKeyFormEnrollment" class="form-input" placeholder="e.g. Turnitin2026" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Class ID <span style="font-size:0.72rem; color:var(--text-muted);">(Opsional)</span></label>
+          <input type="text" id="idKeyFormClassId" class="form-input" placeholder="e.g. 45829102">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Durasi (Hari) <span style="color:var(--status-expired)">*</span></label>
+          <input type="number" id="idKeyFormDuration" class="form-input" placeholder="Masukkan angka harian (misal: 2)" min="1" required>
+          <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Durasi otomatis dihitung harian (contoh: isi 2 = 2 Hari).</span>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="addIdKeyFormModal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js?v=1.1"></script>
 </body>
 
 </html>

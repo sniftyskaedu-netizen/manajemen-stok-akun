@@ -328,6 +328,10 @@ body.dark-mode .navbar {
   padding: 1.5rem;
   box-shadow: var(--shadow-md);
   margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   transition: background var(--transition-normal), border-color var(--transition-normal);
 }
 
@@ -1170,9 +1174,9 @@ body:not(.dark-mode) .form-textarea:focus {
   visibility: visible;
 }
 
-/* Modals bertumpuk (Preview Modal di atas modal utama) */
-#templatePreviewModal {
-  z-index: 1100 !important;
+/* Modals bertumpuk (Preview, Konfirmasi Hapus & Form Tambah/Edit di atas modal utama) */
+#deleteConfirmModal, #addIdKeyFormModal, #templatePreviewModal, #duplicateWarningModal {
+  z-index: 1200 !important;
 }
 
 .modal-box {
@@ -1572,6 +1576,40 @@ body:not(.dark-mode) .form-textarea:focus {
 
   .stat-title {
     font-size: 0.7rem;
+  }
+
+  /* MOBILE FILTER CONTROLS & OVERFLOW PROTECTION */
+  .filter-bar, .filter-group {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-controls-group {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 0.35rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-controls-group .form-select {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    font-size: 0.76rem !important;
+    padding: 0.3rem 0.35rem !important;
+    height: 34px !important;
+  }
+
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

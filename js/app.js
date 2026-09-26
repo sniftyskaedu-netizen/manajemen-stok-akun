@@ -26,6 +26,7 @@ class AccExpressApp {
     this.populateProductDropdowns();
     this.renderInventoryTable();
     this.renderSalesHubInventory();
+    this.renderIdKeyTable();
     this.updateAdminAuthState();
     this.restoreSavedViewState();
 
@@ -565,6 +566,34 @@ class AccExpressApp {
       await this.handleSaveTemplate();
     });
 
+    // ID KEY MODAL EVENT LISTENERS
+    document.getElementById('openIdKeyModalBtn')?.addEventListener('click', () => {
+      this.renderIdKeyTable();
+      this.openModal('idKeyModal');
+    });
+
+    document.getElementById('openAddIdKeyModalBtn')?.addEventListener('click', () => {
+      document.getElementById('idKeyForm')?.reset();
+      document.getElementById('idKeyFormId').value = '';
+      const titleEl = document.getElementById('idKeyModalFormTitle');
+      if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Tambah Enrollment Key';
+      if (window.lucide) window.lucide.createIcons();
+      this.openModal('addIdKeyFormModal');
+    });
+
+    document.getElementById('idKeySearchInput')?.addEventListener('input', () => {
+      this.renderIdKeyTable();
+    });
+
+    document.getElementById('idKeyCategoryFilter')?.addEventListener('change', () => {
+      this.renderIdKeyTable();
+    });
+
+    document.getElementById('idKeyForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.handleSaveIdKey();
+    });
+
     document.querySelectorAll('.tag-pills, #templateTagPills').forEach(container => {
       container.addEventListener('click', (e) => {
         const pill = e.target.closest('.tag-pill');
@@ -677,6 +706,12 @@ class AccExpressApp {
         await db.addActivityLog(this.currentAdmin, 'Template Dihapus', 'template', `Hapus template ID ${id}`, id);
         this.showToast('Template pesan berhasil dihapus.', 'info');
         this.renderAdminTemplates();
+      } else if (type === 'id_key') {
+        const item = db.getIdKeyById(id);
+        await db.deleteIdKey(id);
+        await db.addActivityLog(this.currentAdmin || 'staff', 'Enrollment Key Dihapus', 'id_key', `Hapus Enrollment Key ${item ? item.enrollment_key : id}`, id);
+        this.showToast('Data Enrollment Key berhasil dihapus.', 'info');
+        this.renderIdKeyTable();
       }
       this.closeModal('deleteConfirmModal');
     });
@@ -945,50 +980,61 @@ class AccExpressApp {
   }
 
   // --- POPULATE PRODUCT DROPDOWNS ---
-  populateProductDropdowns() {
+  populateProductDropdowns(currentAccProductId = null, currentTplProductId = null) {
     const activeProducts = db.getActiveProducts();
-    const allProducts = db.getProducts();
 
     const qaDropdown = document.getElementById('qaProduct');
     if (qaDropdown) {
+      const currentVal = qaDropdown.value;
       qaDropdown.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>' +
         activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (currentVal) qaDropdown.value = currentVal;
     }
 
     const shFilter = document.getElementById('salesHubProductFilter');
     if (shFilter) {
       const currentVal = shFilter.value;
       shFilter.innerHTML = '<option value="">Semua Kategori</option>' +
-        allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       shFilter.value = currentVal;
     }
 
     const invFilter = document.getElementById('invProductFilter');
     if (invFilter) {
       const currentVal = invFilter.value;
-      invFilter.innerHTML = '<option value="">Semua Produk</option>' +
-        allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      invFilter.innerHTML = '<option value="">Produk</option>' +
+        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       invFilter.value = currentVal;
     }
 
     const accProdSelect = document.getElementById('accFormProduct');
     if (accProdSelect) {
+      let prodsForAcc = [...activeProducts];
+      if (currentAccProductId && !prodsForAcc.some(p => p.id === currentAccProductId)) {
+        const inactiveProd = db.getProductById(currentAccProductId);
+        if (inactiveProd) prodsForAcc.push(inactiveProd);
+      }
       accProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Produk --</option>' +
-        allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        prodsForAcc.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
     }
 
     const adminAccFilter = document.getElementById('adminAccProductFilter');
     if (adminAccFilter) {
       const currentVal = adminAccFilter.value;
       adminAccFilter.innerHTML = '<option value="">Semua Produk</option>' +
-        allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       adminAccFilter.value = currentVal;
     }
 
     const tplProdSelect = document.getElementById('tplFormProductId');
     if (tplProdSelect) {
+      let prodsForTpl = [...activeProducts];
+      if (currentTplProductId && !prodsForTpl.some(p => p.id === currentTplProductId)) {
+        const inactiveProd = db.getProductById(currentTplProductId);
+        if (inactiveProd) prodsForTpl.push(inactiveProd);
+      }
       tplProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Produk Spesifik --</option>' +
-        allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        prodsForTpl.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
     }
   }
 
@@ -1764,7 +1810,7 @@ class AccExpressApp {
         const id = e.currentTarget.getAttribute('data-accid');
         const acc = db.getAccountById(id);
         if (acc) {
-          this.populateProductDropdowns();
+          this.populateProductDropdowns(acc.product_id);
           document.getElementById('accFormId').value = acc.id;
           document.getElementById('accFormProduct').value = acc.product_id;
 
@@ -2086,7 +2132,7 @@ class AccExpressApp {
         const tpls = db.getTemplates();
         const tpl = tpls.find(t => t.id === id);
         if (tpl) {
-          this.populateProductDropdowns();
+          this.populateProductDropdowns(null, tpl.product_id);
           document.getElementById('tplFormId').value = tpl.id;
           document.getElementById('tplFormName').value = tpl.name;
           document.getElementById('tplFormType').value = tpl.type || 'GLOBAL';
@@ -2403,6 +2449,188 @@ class AccExpressApp {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  // --- RENDER & MANAGE ENROLLMENT KEY TABLE ---
+  renderIdKeyTable() {
+    const idKeys = db.getIdKeys();
+    const badgeEl = document.getElementById('idKeyBadgeCount');
+    if (badgeEl) badgeEl.innerText = idKeys.length;
+
+    const tbody = document.getElementById('idKeyTbody');
+    if (!tbody) return;
+
+    // Populate category dropdown filter & datalist options dynamically
+    const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
+    const datalistEl = document.getElementById('idKeyCategoryList');
+
+    const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort();
+    
+    if (categoryFilterSelect) {
+      const currentSelected = categoryFilterSelect.value;
+      categoryFilterSelect.innerHTML = `<option value="">Semua Kategori</option>` + 
+        uniqueCategories.map(cat => `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`).join('');
+    }
+
+    if (datalistEl) {
+      const products = db.getProducts();
+      const productNames = products.map(p => p.name);
+      const allSuggestions = Array.from(new Set([...uniqueCategories, ...productNames])).sort();
+      datalistEl.innerHTML = allSuggestions.map(s => `<option value="${s}">`).join('');
+    }
+
+    const categoryFilterVal = (categoryFilterSelect?.value || '').trim().toLowerCase();
+    const searchQuery = (document.getElementById('idKeySearchInput')?.value || '').trim().toLowerCase();
+
+    const filtered = idKeys.filter(k => {
+      const catName = (k.category || 'Turnitin No Repository').toLowerCase();
+      const matchCategory = !categoryFilterVal || catName === categoryFilterVal;
+      const matchEnrollment = (k.enrollment_key || '').toLowerCase().includes(searchQuery);
+      const matchClassId = (k.class_id || k.id_key || '').toLowerCase().includes(searchQuery);
+      const matchCatQuery = catName.includes(searchQuery);
+      return matchCategory && (matchEnrollment || matchClassId || matchCatQuery);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem 0.5rem;">
+            <i data-lucide="key-round" style="width: 24px; height: 24px; margin-bottom: 0.3rem; opacity: 0.6;"></i>
+            <div>Belum ada data Enrollment Key.</div>
+          </td>
+        </tr>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(item => {
+      const classIdText = item.class_id || item.id_key || '-';
+      const durationDays = Number(item.duration) || Number(item.assignment_count) || 1;
+      const categoryName = item.category || 'Turnitin No Repository';
+
+      return `
+        <tr>
+          <td>
+            <span class="badge badge-accent" style="font-size: 0.74rem; font-weight: 600; text-transform: none;">${categoryName}</span>
+          </td>
+          <td>
+            <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+              <code style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--bg-surface-hover); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--status-available); border: 1px solid var(--border-color);">${item.enrollment_key}</code>
+              <button type="button" class="eye-icon-btn copy-single-val-btn" data-copy="${item.enrollment_key}" title="Salin Enrollment Key">
+                <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+            ${classIdText && classIdText !== '-' ? `
+              <code style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--bg-surface-hover); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--accent-primary); border: 1px solid var(--border-color);">${classIdText}</code>
+            ` : `<span style="font-size: 0.8rem; color: var(--text-muted);">-</span>`}
+          </td>
+          <td style="text-align: center;">
+            <span class="badge badge-sent" style="font-size: 0.74rem; text-transform: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <i data-lucide="clock" style="width: 11px; height: 11px;"></i> ${durationDays} Hari
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-buttons-cell">
+              <button type="button" class="btn btn-xs btn-secondary edit-idkey-btn" data-id="${item.id}" title="Edit Data">
+                <i data-lucide="edit" style="width: 11px; height: 11px;"></i>
+              </button>
+              <button type="button" class="btn btn-xs btn-danger delete-idkey-btn" data-id="${item.id}" title="Hapus Data">
+                <i data-lucide="trash-2" style="width: 11px; height: 11px;"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+
+    // Rebind table buttons
+    tbody.querySelectorAll('.copy-single-val-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const text = e.currentTarget.getAttribute('data-copy');
+        if (text) {
+          const ok = await this.copyToClipboard(text);
+          if (ok) this.showToast(`✓ "${text}" disalin ke clipboard!`, 'success');
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.edit-idkey-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const item = db.getIdKeyById(id);
+        if (item) {
+          document.getElementById('idKeyFormId').value = item.id;
+          const catInput = document.getElementById('idKeyFormCategory');
+          if (catInput) catInput.value = item.category || 'Turnitin No Repository';
+          document.getElementById('idKeyFormEnrollment').value = item.enrollment_key || '';
+          document.getElementById('idKeyFormClassId').value = item.class_id || item.id_key || '';
+          document.getElementById('idKeyFormDuration').value = item.duration || item.assignment_count || 1;
+          const notesEl = document.getElementById('idKeyFormNotes');
+          if (notesEl) notesEl.value = item.notes || '';
+          
+          const titleEl = document.getElementById('idKeyModalFormTitle');
+          if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Edit Enrollment Key';
+          if (window.lucide) window.lucide.createIcons();
+
+          this.openModal('addIdKeyFormModal');
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.delete-idkey-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (id) {
+          const deleteTypeEl = document.getElementById('deleteTargetType');
+          const deleteIdEl = document.getElementById('deleteTargetId');
+          if (deleteTypeEl && deleteIdEl) {
+            deleteTypeEl.value = 'id_key';
+            deleteIdEl.value = id;
+            this.openModal('deleteConfirmModal');
+          }
+        }
+      });
+    });
+  }
+
+  async handleSaveIdKey() {
+    const id = document.getElementById('idKeyFormId')?.value || '';
+    const category = document.getElementById('idKeyFormCategory')?.value.trim() || 'Turnitin No Repository';
+    const enrollment = document.getElementById('idKeyFormEnrollment')?.value.trim() || '';
+    const classId = document.getElementById('idKeyFormClassId')?.value.trim() || '';
+    const duration = document.getElementById('idKeyFormDuration')?.value.trim() || '';
+    const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
+
+    if (!category || !enrollment || !duration) {
+      this.showToast('Silakan isi Kategori, Enrollment Key, dan Durasi (Hari).', 'error');
+      return;
+    }
+
+    const durationNum = parseInt(duration, 10);
+    if (isNaN(durationNum) || durationNum <= 0) {
+      this.showToast('Durasi harus berupa angka positif (contoh: 2 untuk 2 hari).', 'error');
+      return;
+    }
+
+    await db.saveIdKey({
+      id,
+      category,
+      enrollment_key: enrollment,
+      class_id: classId,
+      id_key: classId,
+      duration: durationNum,
+      notes
+    });
+
+    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Class ID: ${classId} | Durasi: ${durationNum} Hari`);
+    this.showToast(`✓ Data Enrollment Key "${enrollment}" (${category}) berhasil disimpan!`, 'success');
+    this.closeModal('addIdKeyFormModal');
+    this.renderIdKeyTable();
   }
 }
 

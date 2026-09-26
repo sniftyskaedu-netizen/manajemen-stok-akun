@@ -18,7 +18,8 @@ class AccExpressDB {
       TRANSACTIONS: 'accexpress_transactions',
       ACTIVITY_LOGS: 'accexpress_activity_logs',
       ADMIN_USERS: 'accexpress_admin_users',
-      SETTINGS: 'accexpress_settings'
+      SETTINGS: 'accexpress_settings',
+      ID_KEYS: 'accexpress_id_keys'
     };
   }
 
@@ -38,14 +39,15 @@ class AccExpressDB {
   // --- Remote Cloud Sync Methods ---
   async syncFromSupabase() {
     try {
-      const [remoteProducts, remoteAccounts, remoteTemplates, remoteTx, remoteLogs, remoteSettings, remoteAdmin] = await Promise.all([
+      const [remoteProducts, remoteAccounts, remoteTemplates, remoteTx, remoteLogs, remoteSettings, remoteAdmin, remoteIdKeys] = await Promise.all([
         fetchAllFromSupabase(SUPABASE_TABLES.PRODUCTS),
         fetchAllFromSupabase(SUPABASE_TABLES.ACCOUNTS),
         fetchAllFromSupabase(SUPABASE_TABLES.TEMPLATES),
         fetchAllFromSupabase(SUPABASE_TABLES.TRANSACTIONS),
         fetchAllFromSupabase(SUPABASE_TABLES.ACTIVITY_LOGS),
         fetchAllFromSupabase(SUPABASE_TABLES.SETTINGS),
-        fetchAllFromSupabase(SUPABASE_TABLES.ADMIN_USERS)
+        fetchAllFromSupabase(SUPABASE_TABLES.ADMIN_USERS),
+        fetchAllFromSupabase(SUPABASE_TABLES.ID_KEYS)
       ]);
 
       if (remoteProducts && remoteProducts.length > 0) {
@@ -65,6 +67,9 @@ class AccExpressDB {
       }
       if (remoteAdmin && remoteAdmin.length > 0) {
         this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
+      }
+      if (remoteIdKeys && remoteIdKeys.length > 0) {
+        this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
       }
       if (remoteSettings && remoteSettings.length > 0) {
         const settingsRecord = remoteSettings.find(s => s.id === 'main_settings') || remoteSettings[0];
@@ -601,7 +606,40 @@ class AccExpressDB {
     this._set(this.STORAGE_KEYS.TEMPLATES, templates);
     await upsertToSupabase(SUPABASE_TABLES.TEMPLATES, templates);
 
-    // 5. Initial Settings
+    // 5. Sample ID Keys & Enrollment Data
+    const sampleIdKeys = [
+      {
+        id: 'idkey_1',
+        id_key: '45829102',
+        class_id: '45829102',
+        enrollment_key: 'Turnitin2026',
+        duration: 2,
+        notes: 'Kelas Turnitin Regular A',
+        created_at: now.toISOString()
+      },
+      {
+        id: 'idkey_2',
+        id_key: '45829103',
+        class_id: '45829103',
+        enrollment_key: 'ExpressPass88',
+        duration: 7,
+        notes: 'Kelas Turnitin Premium B',
+        created_at: now.toISOString()
+      },
+      {
+        id: 'idkey_3',
+        id_key: '45829104',
+        class_id: '45829104',
+        enrollment_key: 'ClassKey99',
+        duration: 30,
+        notes: 'Moodle LMS Fast Track',
+        created_at: now.toISOString()
+      }
+    ];
+    this._set(this.STORAGE_KEYS.ID_KEYS, sampleIdKeys);
+    await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, sampleIdKeys);
+
+    // 6. Initial Settings
     const settings = {
       id: 'main_settings',
       web_name: 'AccExpress Seller Hub',
@@ -614,8 +652,117 @@ class AccExpressDB {
     localStorage.setItem(this.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
     await upsertToSupabase(SUPABASE_TABLES.SETTINGS, settings);
 
-    // 6. Activity Log Initial
+    // 7. Activity Log Initial
     await this.addActivityLog('system', 'System Seed', 'system', 'Database successfully initialized with Supabase seed data');
+  }
+
+  // --- ID Keys & Enrollment CRUD ---
+  getIdKeys() {
+    const raw = localStorage.getItem(this.STORAGE_KEYS.ID_KEYS);
+    if (raw === null) {
+      const defaultSample = [
+        {
+          id: 'idkey_1',
+          category: 'Turnitin No Repository',
+          id_key: '45829102',
+          class_id: '45829102',
+          enrollment_key: 'Turnitin2026',
+          duration: 2,
+          notes: 'Kelas Turnitin Regular A',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'idkey_2',
+          category: 'Turnitin Repository',
+          id_key: '45829103',
+          class_id: '45829103',
+          enrollment_key: 'ExpressPass88',
+          duration: 7,
+          notes: 'Kelas Turnitin Premium B',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'idkey_3',
+          category: 'Moodle LMS',
+          id_key: '45829104',
+          class_id: '45829104',
+          enrollment_key: 'ClassKey99',
+          duration: 30,
+          notes: 'Moodle LMS Fast Track',
+          created_at: new Date().toISOString()
+        }
+      ];
+      this._set(this.STORAGE_KEYS.ID_KEYS, defaultSample);
+      return defaultSample;
+    }
+    try {
+      const items = JSON.parse(raw) || [];
+      return items.map(k => ({
+        ...k,
+        category: k.category || 'Turnitin No Repository'
+      }));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  getIdKeyById(id) {
+    if (!id) return null;
+    return this.getIdKeys().find(k => k.id === id);
+  }
+
+  async saveIdKey(keyData) {
+    const keys = this.getIdKeys();
+    let savedKey = null;
+
+    const classIdVal = keyData.class_id || keyData.id_key || '';
+    const durationVal = Number(keyData.duration) || Number(keyData.assignment_count) || 1;
+    const categoryVal = (keyData.category || '').trim() || 'Turnitin No Repository';
+
+    if (keyData.id && String(keyData.id).trim() !== '') {
+      const idx = keys.findIndex(k => k.id === keyData.id);
+      if (idx !== -1) {
+        keys[idx] = {
+          ...keys[idx],
+          category: categoryVal,
+          id_key: classIdVal,
+          class_id: classIdVal,
+          enrollment_key: keyData.enrollment_key,
+          duration: durationVal,
+          notes: keyData.notes || '',
+          updated_at: new Date().toISOString()
+        };
+        savedKey = keys[idx];
+      }
+    }
+
+    if (!savedKey) {
+      savedKey = {
+        id: this._generateId(),
+        category: categoryVal,
+        id_key: classIdVal,
+        class_id: classIdVal,
+        enrollment_key: keyData.enrollment_key,
+        duration: durationVal,
+        notes: keyData.notes || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      keys.unshift(savedKey);
+    }
+
+    this._set(this.STORAGE_KEYS.ID_KEYS, keys);
+    await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, savedKey);
+    return savedKey;
+  }
+
+  async deleteIdKey(id) {
+    const cleanId = String(id || '').trim();
+    let keys = this.getIdKeys();
+    keys = keys.filter(k => String(k.id || '').trim() !== cleanId);
+    this._set(this.STORAGE_KEYS.ID_KEYS, keys);
+    await deleteFromSupabase(SUPABASE_TABLES.ID_KEYS, cleanId);
+    return true;
   }
 
   // --- Products CRUD ---

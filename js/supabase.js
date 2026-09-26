@@ -23,7 +23,8 @@ export const SUPABASE_TABLES = {
   TRANSACTIONS: 'accexpress_transactions',
   ACTIVITY_LOGS: 'accexpress_activity_logs',
   SETTINGS: 'accexpress_settings',
-  ADMIN_USERS: 'accexpress_admin_users'
+  ADMIN_USERS: 'accexpress_admin_users',
+  ID_KEYS: 'accexpress_id_keys'
 };
 
 export async function fetchAllFromSupabase(tableName) {
