@@ -2590,7 +2590,14 @@ class AccExpressApp {
     filtered.sort((a, b) => {
       const numA = parseInt(String(a.assignment || a.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
       const numB = parseInt(String(b.assignment || b.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
-      return numA - numB;
+      
+      if (numA !== numB) {
+        return numA - numB;
+      }
+
+      const timeA = new Date(a.created_at || a.updated_at || 0).getTime();
+      const timeB = new Date(b.created_at || b.updated_at || 0).getTime();
+      return timeA - timeB;
     });
 
     if (filtered.length === 0) {
