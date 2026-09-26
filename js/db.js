@@ -779,26 +779,17 @@ class AccExpressDB {
     if (!cleanCat) return false;
 
     let keys = this.getIdKeys();
-    let updated = false;
+    const cleanCatLower = cleanCat.toLowerCase();
 
-    const otherCats = Array.from(new Set(keys.map(k => (k.category || '').trim()).filter(c => c && c !== cleanCat)));
-    const fallbackCategory = otherCats.length > 0 ? otherCats[0] : 'Umum';
+    const deletedKeys = keys.filter(k => (k.category || '').trim().toLowerCase() === cleanCatLower);
+    const remainingKeys = keys.filter(k => (k.category || '').trim().toLowerCase() !== cleanCatLower);
 
-    keys = keys.map(k => {
-      if ((k.category || '').trim() === cleanCat) {
-        updated = true;
-        return {
-          ...k,
-          category: fallbackCategory,
-          updated_at: new Date().toISOString()
-        };
+    this._set(this.STORAGE_KEYS.ID_KEYS, remainingKeys);
+
+    for (const dKey of deletedKeys) {
+      if (dKey.id) {
+        await deleteFromSupabase(SUPABASE_TABLES.ID_KEYS, dKey.id);
       }
-      return k;
-    });
-
-    if (updated) {
-      this._set(this.STORAGE_KEYS.ID_KEYS, keys);
-      await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, keys);
     }
     return true;
   }
