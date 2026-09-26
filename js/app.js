@@ -2587,6 +2587,12 @@ class AccExpressApp {
       return matchCategory && (matchEnrollment || matchClassId || matchCatQuery);
     });
 
+    filtered.sort((a, b) => {
+      const numA = parseInt(String(a.assignment || a.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.assignment || b.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
+      return numA - numB;
+    });
+
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -2603,7 +2609,8 @@ class AccExpressApp {
     tbody.innerHTML = filtered.map(item => {
       const classIdText = item.class_id || item.id_key || '-';
       const durationDays = Number(item.duration) || 1;
-      const assignmentText = item.assignment || (item.assignment_count ? `${item.assignment_count} Assignment` : '-');
+      const rawAssignNum = parseInt(String(item.assignment || item.assignment_count || 1).replace(/\D/g, ''), 10) || 1;
+      const assignmentText = `${rawAssignNum} Assignment`;
 
       return `
         <tr>
@@ -2665,7 +2672,8 @@ class AccExpressApp {
           document.getElementById('idKeyFormEnrollment').value = item.enrollment_key || '';
           document.getElementById('idKeyFormClassId').value = item.class_id || item.id_key || '';
           const assignInput = document.getElementById('idKeyFormAssignment');
-          if (assignInput) assignInput.value = item.assignment || item.assignment_count || '';
+          const rawAssignNum = parseInt(String(item.assignment || item.assignment_count || 1).replace(/\D/g, ''), 10) || 1;
+          if (assignInput) assignInput.value = rawAssignNum;
           document.getElementById('idKeyFormDuration').value = item.duration || 1;
           const notesEl = document.getElementById('idKeyFormNotes');
           if (notesEl) notesEl.value = item.notes || '';
@@ -2704,12 +2712,18 @@ class AccExpressApp {
 
     const enrollment = document.getElementById('idKeyFormEnrollment')?.value.trim() || '';
     const classId = document.getElementById('idKeyFormClassId')?.value.trim() || '';
-    const assignment = document.getElementById('idKeyFormAssignment')?.value.trim() || '';
+    const assignmentVal = document.getElementById('idKeyFormAssignment')?.value.trim() || '';
     const duration = document.getElementById('idKeyFormDuration')?.value.trim() || '';
     const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
 
-    if (!category || !enrollment || !assignment || !duration) {
-      this.showToast('Silakan isi Kategori, Enrollment Key, Assignment, dan Durasi (Hari).', 'error');
+    if (!category || !enrollment || !assignmentVal || !duration) {
+      this.showToast('Silakan isi Kategori, Enrollment Key, Assignment (Angka), dan Durasi (Hari).', 'error');
+      return;
+    }
+
+    const assignmentNum = parseInt(assignmentVal, 10);
+    if (isNaN(assignmentNum) || assignmentNum <= 0) {
+      this.showToast('Assignment harus berupa angka positif (contoh: 1 untuk 1 Assignment).', 'error');
       return;
     }
 

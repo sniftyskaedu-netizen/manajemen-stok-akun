@@ -666,7 +666,8 @@ class AccExpressDB {
           category: 'Turnitin No Repository',
           id_key: '45829102',
           class_id: '45829102',
-          assignment: '5 Assignment',
+          assignment: 5,
+          assignment_count: 5,
           enrollment_key: 'Turnitin2026',
           duration: 2,
           notes: 'Kelas Turnitin Regular A',
@@ -677,7 +678,8 @@ class AccExpressDB {
           category: 'Turnitin Repository',
           id_key: '45829103',
           class_id: '45829103',
-          assignment: '10 Assignment',
+          assignment: 10,
+          assignment_count: 10,
           enrollment_key: 'ExpressPass88',
           duration: 7,
           notes: 'Kelas Turnitin Premium B',
@@ -688,7 +690,8 @@ class AccExpressDB {
           category: 'Moodle LMS',
           id_key: '45829104',
           class_id: '45829104',
-          assignment: '3 Slot',
+          assignment: 3,
+          assignment_count: 3,
           enrollment_key: 'ClassKey99',
           duration: 30,
           notes: 'Moodle LMS Fast Track',
@@ -700,11 +703,15 @@ class AccExpressDB {
     }
     try {
       const items = JSON.parse(raw) || [];
-      return items.map(k => ({
-        ...k,
-        category: k.category || 'Turnitin No Repository',
-        assignment: k.assignment || (k.assignment_count ? `${k.assignment_count} Assignment` : '-')
-      }));
+      return items.map(k => {
+        const num = parseInt(String(k.assignment || k.assignment_count || 1).replace(/\D/g, ''), 10) || 1;
+        return {
+          ...k,
+          category: k.category || 'Turnitin No Repository',
+          assignment: num,
+          assignment_count: num
+        };
+      });
     } catch (e) {
       return [];
     }
@@ -722,7 +729,7 @@ class AccExpressDB {
     const classIdVal = keyData.class_id || keyData.id_key || '';
     const durationVal = Number(keyData.duration) || 1;
     const categoryVal = (keyData.category || '').trim() || 'Turnitin No Repository';
-    const assignmentVal = (keyData.assignment || '').trim() || '-';
+    const rawAssignNum = parseInt(String(keyData.assignment || '').replace(/\D/g, ''), 10) || 1;
 
     if (keyData.id && String(keyData.id).trim() !== '') {
       const idx = keys.findIndex(k => k.id === keyData.id);
@@ -732,8 +739,8 @@ class AccExpressDB {
           category: categoryVal,
           id_key: classIdVal,
           class_id: classIdVal,
-          assignment: assignmentVal,
-          assignment_count: assignmentVal,
+          assignment: rawAssignNum,
+          assignment_count: rawAssignNum,
           enrollment_key: keyData.enrollment_key,
           duration: durationVal,
           notes: keyData.notes || '',
@@ -749,8 +756,8 @@ class AccExpressDB {
         category: categoryVal,
         id_key: classIdVal,
         class_id: classIdVal,
-        assignment: assignmentVal,
-        assignment_count: assignmentVal,
+        assignment: rawAssignNum,
+        assignment_count: rawAssignNum,
         enrollment_key: keyData.enrollment_key,
         duration: durationVal,
         notes: keyData.notes || '',
