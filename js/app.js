@@ -591,6 +591,8 @@ class AccExpressApp {
       document.getElementById('idKeyForm')?.reset();
       document.getElementById('idKeyFormId').value = '';
       this.populateIdKeyCategoryDropdown('');
+      const resetGroup = document.getElementById('idKeyResetDurationGroup');
+      if (resetGroup) resetGroup.style.display = 'none';
       const titleEl = document.getElementById('idKeyModalFormTitle');
       if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Tambah Enrollment Key';
       if (window.lucide) window.lucide.createIcons();
@@ -619,6 +621,10 @@ class AccExpressApp {
     }, 150));
 
     document.getElementById('idKeyCategoryFilter')?.addEventListener('change', () => {
+      this.renderIdKeyTable();
+    });
+
+    document.getElementById('idKeyStatusFilter')?.addEventListener('change', () => {
       this.renderIdKeyTable();
     });
 
@@ -2596,15 +2602,18 @@ class AccExpressApp {
     }
 
     const categoryFilterVal = (categoryFilterSelect?.value || '').trim().toLowerCase();
+    const statusFilterSelect = document.getElementById('idKeyStatusFilter');
+    const statusFilterVal = (statusFilterSelect?.value || '').trim().toUpperCase();
     const searchQuery = (document.getElementById('idKeySearchInput')?.value || '').trim().toLowerCase();
 
     const filtered = idKeys.filter(k => {
       const catName = (k.category || 'Turnitin No Repository').toLowerCase();
       const matchCategory = !categoryFilterVal || catName === categoryFilterVal;
+      const matchStatus = !statusFilterVal || k.status === statusFilterVal;
       const matchEnrollment = (k.enrollment_key || '').toLowerCase().includes(searchQuery);
       const matchClassId = (k.class_id || k.id_key || '').toLowerCase().includes(searchQuery);
       const matchCatQuery = catName.includes(searchQuery);
-      return matchCategory && (matchEnrollment || matchClassId || matchCatQuery);
+      return matchCategory && matchStatus && (matchEnrollment || matchClassId || matchCatQuery);
     });
 
     filtered.sort((a, b) => {
@@ -2623,7 +2632,7 @@ class AccExpressApp {
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem 0.5rem;">
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem 0.5rem;">
             <i data-lucide="key-round" style="width: 24px; height: 24px; margin-bottom: 0.3rem; opacity: 0.6;"></i>
             <div>Belum ada data Enrollment Key.</div>
           </td>
@@ -2638,12 +2647,22 @@ class AccExpressApp {
       const durationDays = Number(item.duration) || 1;
       const rawAssignNum = parseInt(String(item.assignment || item.assignment_count || 1).replace(/\D/g, ''), 10) || 1;
       const assignmentText = `${rawAssignNum} Assignment`;
+      const isExpired = item.is_expired;
+      const runningDurationText = item.running_duration;
+
+      const statusBadge = isExpired
+        ? `<span class="badge badge-expired" style="font-size: 0.72rem; text-transform: none; display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="x-circle" style="width: 11px; height: 11px;"></i> EXPIRED</span>`
+        : `<span class="badge badge-available" style="font-size: 0.72rem; text-transform: none; display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="check-circle-2" style="width: 11px; height: 11px;"></i> AKTIF</span>`;
+
+      const runningBadge = isExpired
+        ? `<span style="font-size: 0.76rem; font-weight: 600; color: var(--status-expired); display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="timer-off" style="width: 11px; height: 11px;"></i> ${runningDurationText}</span>`
+        : `<span style="font-size: 0.76rem; font-weight: 600; color: var(--accent-primary); display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="timer" style="width: 11px; height: 11px;"></i> ${runningDurationText}</span>`;
 
       return `
         <tr>
           <td>
             <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
-              <code style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--bg-surface-hover); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--status-available); border: 1px solid var(--border-color);">${item.enrollment_key}</code>
+              <code style="font-family: monospace; font-size: 0.85rem; font-weight: 700; background: var(--bg-surface-hover); padding: 0.15rem 0.4rem; border-radius: 4px; color: ${isExpired ? 'var(--status-expired)' : 'var(--status-available)'}; border: 1px solid var(--border-color);">${item.enrollment_key}</code>
               <button type="button" class="eye-icon-btn copy-single-val-btn" data-copy="${item.enrollment_key}" title="Salin Enrollment Key">
                 <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
               </button>
@@ -2661,6 +2680,12 @@ class AccExpressApp {
             <span class="badge badge-sent" style="font-size: 0.74rem; text-transform: none; display: inline-flex; align-items: center; gap: 0.25rem;">
               <i data-lucide="clock" style="width: 11px; height: 11px;"></i> ${durationDays} Hari
             </span>
+          </td>
+          <td style="text-align: center;">
+            ${runningBadge}
+          </td>
+          <td style="text-align: center;">
+            ${statusBadge}
           </td>
           <td style="text-align: right;">
             <div class="action-buttons-cell">
@@ -2705,6 +2730,11 @@ class AccExpressApp {
           const notesEl = document.getElementById('idKeyFormNotes');
           if (notesEl) notesEl.value = item.notes || '';
           
+          const resetGroup = document.getElementById('idKeyResetDurationGroup');
+          if (resetGroup) resetGroup.style.display = 'block';
+          const resetCheck = document.getElementById('idKeyFormResetCreated');
+          if (resetCheck) resetCheck.checked = false;
+
           const titleEl = document.getElementById('idKeyModalFormTitle');
           if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Edit Enrollment Key';
           if (window.lucide) window.lucide.createIcons();
@@ -2742,6 +2772,7 @@ class AccExpressApp {
     const assignmentVal = document.getElementById('idKeyFormAssignment')?.value.trim() || '';
     const duration = document.getElementById('idKeyFormDuration')?.value.trim() || '';
     const notes = document.getElementById('idKeyFormNotes')?.value?.trim() || '';
+    const resetCreated = document.getElementById('idKeyFormResetCreated')?.checked || false;
 
     if (!category || !enrollment || !assignmentVal || !duration) {
       this.showToast('Silakan isi Kategori, Enrollment Key, Assignment (Angka), dan Durasi (Hari).', 'error');
@@ -2773,10 +2804,11 @@ class AccExpressApp {
       id_key: classId,
       assignment: assignmentNum,
       duration: durationNum,
+      reset_created: resetCreated,
       notes
     });
 
-    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Assignment: ${assignmentNum} | Durasi: ${durationNum} Hari`);
+    db.addActivityLog(this.currentAdmin || 'staff', id ? 'Enrollment Key Diperbarui' : 'Enrollment Key Ditambahkan', 'id_key', `${id ? 'Update' : 'Tambah'} Enrollment Key: ${enrollment} | Kategori: ${category} | Assignment: ${assignmentNum} | Durasi: ${durationNum} Hari${resetCreated ? ' | Reset Durasi' : ''}`);
     this.showToast(`✓ Data Enrollment Key "${enrollment}" berhasil disimpan!`, 'success');
     this.closeModal('addIdKeyFormModal');
     this.renderIdKeyTable();

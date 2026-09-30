@@ -601,7 +601,7 @@ class AccExpressDB {
         enrollment_key: 'Turnitin2026',
         duration: 2,
         notes: 'Kelas Turnitin Regular A',
-        created_at: now.toISOString()
+        created_at: new Date(now.getTime() - (1 * 24 + 5) * 3600 * 1000).toISOString()
       },
       {
         id: 'idkey_2',
@@ -610,16 +610,16 @@ class AccExpressDB {
         enrollment_key: 'ExpressPass88',
         duration: 7,
         notes: 'Kelas Turnitin Premium B',
-        created_at: now.toISOString()
+        created_at: new Date(now.getTime() - (3 * 24 + 12) * 3600 * 1000).toISOString()
       },
       {
         id: 'idkey_3',
         id_key: '45829104',
         class_id: '45829104',
         enrollment_key: 'ClassKey99',
-        duration: 30,
+        duration: 2,
         notes: 'Moodle LMS Fast Track',
-        created_at: now.toISOString()
+        created_at: new Date(now.getTime() - (3 * 24 + 2) * 3600 * 1000).toISOString()
       }
     ];
     this._set(this.STORAGE_KEYS.ID_KEYS, sampleIdKeys);
@@ -648,8 +648,30 @@ class AccExpressDB {
     if (!raw) return [];
     try {
       const items = JSON.parse(raw) || [];
+      const now = new Date();
       return items.map(k => {
         const num = parseInt(String(k.assignment || k.assignment_count || 1).replace(/\D/g, ''), 10) || 1;
+        const duration = Number(k.duration) || 1;
+        const createdAt = k.created_at ? new Date(k.created_at) : now;
+        const diffMs = Math.max(0, now.getTime() - createdAt.getTime());
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const daysPassed = Math.floor(totalHours / 24);
+        const hoursPassed = totalHours % 24;
+
+        // Expiration calculation: if diffMs >= duration * 24 * 60 * 60 * 1000, then status = EXPIRED
+        const isExpired = diffMs >= (duration * 24 * 60 * 60 * 1000);
+        const computedStatus = isExpired ? 'EXPIRED' : 'AKTIF';
+
+        let runningDurationStr = '';
+        if (daysPassed > 0) {
+          runningDurationStr = hoursPassed > 0 ? `${daysPassed} Hari ${hoursPassed} Jam` : `${daysPassed} Hari`;
+        } else if (hoursPassed > 0) {
+          runningDurationStr = `${hoursPassed} Jam`;
+        } else {
+          const minutesPassed = Math.floor(diffMs / (1000 * 60));
+          runningDurationStr = minutesPassed > 0 ? `${minutesPassed} Menit` : 'Baru saja';
+        }
+
         return {
           ...k,
           category: k.category || 'Turnitin No Repository',
@@ -658,9 +680,14 @@ class AccExpressDB {
           assignment: num,
           assignment_count: num,
           enrollment_key: k.enrollment_key || '',
-          duration: Number(k.duration) || 1,
+          duration: duration,
+          status: computedStatus,
+          running_duration: runningDurationStr,
+          days_passed: daysPassed,
+          hours_passed: hoursPassed,
+          is_expired: isExpired,
           notes: k.notes || '',
-          created_at: k.created_at || new Date().toISOString()
+          created_at: k.created_at || now.toISOString()
         };
       });
     } catch (e) {
@@ -681,6 +708,7 @@ class AccExpressDB {
     const durationVal = Number(keyData.duration) || 1;
     const categoryVal = (keyData.category || '').trim() || 'Turnitin No Repository';
     const rawAssignNum = parseInt(String(keyData.assignment || '').replace(/\D/g, ''), 10) || 1;
+    const shouldResetCreated = Boolean(keyData.reset_created);
 
     if (keyData.id && String(keyData.id).trim() !== '') {
       const idx = keys.findIndex(k => k.id === keyData.id);
@@ -695,6 +723,7 @@ class AccExpressDB {
           enrollment_key: keyData.enrollment_key,
           duration: durationVal,
           notes: keyData.notes || '',
+          created_at: shouldResetCreated ? new Date().toISOString() : (keys[idx].created_at || new Date().toISOString()),
           updated_at: new Date().toISOString()
         };
         savedKey = keys[idx];

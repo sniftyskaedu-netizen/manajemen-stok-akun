@@ -6,7 +6,7 @@ Aplikasi Manajemen Stok, Quick Delivery, dan Inventory Akun Digital berbasis web
 
 ## ✨ Fitur Utama
 - **Sales Hub & Quick Access**: Pengiriman cepat stok akun digital (Email & Password, Kode Redeem/Voucher, maupun Link Akses) langsung via WhatsApp.
-- **Enrollment Key Viewer (Dengan Kategori)**: Manajemen Enrollment Key, Class ID, Kategori produk, dan durasi harian otomatis.
+- **Enrollment Key Viewer (Dengan Durasi Berjalan & Status Auto-Expired)**: Manajemen Enrollment Key, Class ID, Kategori produk, perhitungan durasi berjalan real-time (contoh: 1 Hari 5 Jam), serta status otomatis EXPIRED jika telah melewati batas hari yang ditentukan.
 - **Template Pesan Dinamis**: Kustomisasi template pesan WhatsApp dengan tag variabel otomatis (`{{product}}`, `{{email/link}}`, `{{password}}`, `{{duration}}`, `{{sent_date}}`, `{{expires_date}}`, `{{catatan}}`).
 - **Inventory & Tracking Status**: Pemantauan stok TERSEDIA, TERKIRIM, dan EXPIRED secara otomatis dengan indikator peringatan akun yang akan expired (< 12 jam).
 - **Export Multi-Sheet Excel**: Unduh seluruh data inventaris dan riwayat ke file Excel (.xlsx) rapi berdasar status dan kategori produk menggunakan SheetJS.

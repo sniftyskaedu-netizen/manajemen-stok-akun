@@ -1096,7 +1096,7 @@
 
   <!-- ID KEY & ENROLLMENT VIEWER MODAL (KOMPAK & TENTRAM DI QUICK ACCESS) -->
   <div id="idKeyModal" class="modal-overlay">
-    <div class="modal-box" style="max-width: 620px;">
+    <div class="modal-box" style="max-width: 780px;">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.45rem;">
           <i data-lucide="key" style="color: var(--accent-primary);"></i> Enrollment Key
@@ -1106,7 +1106,7 @@
 
       <!-- FILTER & TOMBOL TAMBAH DENGAN SPACE EFISIEN -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 180px;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 170px;">
           <select id="idKeyCategoryFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1;">
             <option value="">Semua Kategori</option>
           </select>
@@ -1115,6 +1115,11 @@
             <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
           </button>
         </div>
+        <select id="idKeyStatusFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); width: 130px;">
+          <option value="">Semua Status</option>
+          <option value="AKTIF">AKTIF</option>
+          <option value="EXPIRED">EXPIRED</option>
+        </select>
         <input type="text" id="idKeySearchInput" class="form-input" placeholder="Cari Enrollment Key / Class ID..."
           style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1; min-width: 160px;">
         <button type="button" id="openAddIdKeyModalBtn" class="btn btn-primary btn-sm" style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.8rem; white-space: nowrap;">
@@ -1130,7 +1135,9 @@
               <th>Enrollment Key</th>
               <th>Assignment</th>
               <th>Class ID</th>
-              <th style="text-align: center;">Durasi</th>
+              <th style="text-align: center;">Batas Durasi</th>
+              <th style="text-align: center;">Durasi Berjalan</th>
+              <th style="text-align: center;">Status</th>
               <th style="text-align: right;">Aksi</th>
             </tr>
           </thead>
@@ -1142,7 +1149,7 @@
 
       <div class="modal-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
-          <i data-lucide="info" style="width: 13px; height: 13px; color: var(--accent-primary);"></i> Klik ikon 📋 pada Enrollment Key untuk menyalin.
+          <i data-lucide="info" style="width: 13px; height: 13px; color: var(--accent-primary);"></i> Klik ikon 📋 pada Enrollment Key untuk menyalin. Status otomatis EXPIRED jika melewati batas durasi.
         </span>
         <button type="button" class="btn btn-secondary btn-sm" data-close="idKeyModal">Tutup</button>
       </div>
@@ -1184,9 +1191,16 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
-          <label class="form-label">Durasi (Hari) <span style="color:var(--status-expired)">*</span></label>
+          <label class="form-label">Batas Durasi (Hari) <span style="color:var(--status-expired)">*</span></label>
           <input type="number" id="idKeyFormDuration" class="form-input" placeholder="Masukkan angka harian (misal: 2)" min="1" required>
           <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Durasi otomatis dihitung harian (contoh: isi 2 = 2 Hari).</span>
+        </div>
+
+        <div id="idKeyResetDurationGroup" class="form-group" style="margin-bottom: 0.85rem; display: none; background: var(--bg-surface-hover); padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 500;">
+            <input type="checkbox" id="idKeyFormResetCreated" style="accent-color: var(--accent-primary); width: 15px; height: 15px;">
+            <span>Reset Durasi Berjalan (Mulai dari awal hari ini)</span>
+          </label>
         </div>
 
         <div class="modal-footer">
