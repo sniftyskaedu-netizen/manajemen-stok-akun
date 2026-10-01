@@ -2113,7 +2113,7 @@ class AccExpressApp {
           </td>
           <td style="text-align: right;">
             <div class="action-buttons-cell">
-              <button class="btn btn-warning btn-xs expire-cat-btn" data-prodid="${prod.id}" title="Expiredkan Semua Akun pada Kategori Ini"><i data-lucide="clock"></i> Expiredkan</button>
+              <button class="btn btn-warning btn-xs expire-cat-btn" data-prodid="${prod.id}" title="Expiredkan Semua Akun pada Kategori Ini"><i data-lucide="clock"></i></button>
               <button class="btn btn-secondary btn-xs edit-prod-btn" data-prodid="${prod.id}"><i data-lucide="edit-3"></i> Edit</button>
               <button class="btn btn-danger btn-xs delete-prod-btn" data-prodid="${prod.id}"><i data-lucide="trash-2"></i></button>
             </div>
