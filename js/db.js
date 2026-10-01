@@ -31,7 +31,7 @@ class AccExpressDB {
     if (!localStorage.getItem(this.STORAGE_KEYS.ADMIN_USERS)) {
       await this.seedInitialData();
     }
-    
+
     // 3. Update status akun expired secara otomatis
     await this.updateAutomaticExpirations();
   }
@@ -998,6 +998,157 @@ class AccExpressDB {
       return accounts[idx];
     }
     return null;
+  }
+
+  // --- BULK UPLOAD STOK AKUN VIA EXCEL ---
+  async bulkUploadAccounts(items = [], options = {}) {
+    this.updateAutomaticExpirations();
+    const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    const products = this.getProducts();
+
+    const results = {
+      total: items.length,
+      addedCount: 0,
+      updatedFromExpiredCount: 0,
+      rejectedCount: 0,
+      details: []
+    };
+
+    const now = new Date().toISOString();
+    const updatedAccounts = [...accounts];
+    const newOrUpdatedForSupabase = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const raw = items[i];
+
+      // Tentukan Product ID (pencocokan nama produk atau ID)
+      let prodId = options.defaultProductId || '';
+      if (raw.product_name) {
+        const pNameClean = String(raw.product_name).trim().toLowerCase();
+        const matchedProd = products.find(p => (p.name || '').trim().toLowerCase() === pNameClean || p.id === raw.product_name);
+        if (matchedProd) prodId = matchedProd.id;
+      }
+      if (!prodId && products.length > 0) {
+        prodId = products[0].id;
+      }
+
+      const accessType = (raw.access_type && String(raw.access_type).toUpperCase() === 'LINK') || raw.link ? 'LINK' : 'ACCOUNT';
+      const isLink = accessType === 'LINK';
+      const emailOrUser = String(raw.username_or_email || raw.email || raw.username || '').trim();
+      const linkUrl = String(raw.link || (isLink ? emailOrUser : '')).trim();
+      const rawPass = String(raw.password || '').trim();
+      const duration = Number(raw.duration) || Number(options.defaultDuration) || 30;
+      const durationUnit = String(raw.duration_unit || options.defaultDurationUnit || 'Hari').trim();
+      const notes = String(raw.notes || '').trim();
+
+      const mainIdentifier = isLink ? linkUrl.toLowerCase() : emailOrUser.toLowerCase();
+
+      if (!mainIdentifier) {
+        results.rejectedCount++;
+        results.details.push({
+          row: i + 1,
+          identifier: '(Kosong)',
+          status: 'REJECTED',
+          reason: 'Email / Link Akses kosong'
+        });
+        continue;
+      }
+
+      // Cari apakah akun dengan email / link yang sama sudah ada di daftar akun
+      const existingIndex = updatedAccounts.findIndex(acc => {
+        const accIsLink = acc.access_type === 'LINK' || Boolean(acc.link);
+        const accIdent = accIsLink 
+          ? (acc.link || acc.username_or_email || '').trim().toLowerCase()
+          : (acc.username_or_email || '').trim().toLowerCase();
+        return accIdent === mainIdentifier;
+      });
+
+      if (existingIndex !== -1) {
+        const existingAcc = updatedAccounts[existingIndex];
+        if (existingAcc.status === 'EXPIRED') {
+          // ATURAN 1: Akun EXPIRED -> Ubah status menjadi TERSEDIA & perbarui data!
+          let encPass = existingAcc.encrypted_password || '';
+          if (rawPass && !isLink) {
+            encPass = await CryptoUtil.encrypt(rawPass);
+          }
+
+          updatedAccounts[existingIndex] = {
+            ...existingAcc,
+            product_id: prodId || existingAcc.product_id,
+            access_type: accessType,
+            username_or_email: isLink ? linkUrl : emailOrUser,
+            encrypted_password: isLink ? '' : (encPass || existingAcc.encrypted_password),
+            link: linkUrl,
+            status: 'TERSEDIA',
+            customer_whatsapp: '',
+            duration: duration,
+            duration_unit: durationUnit,
+            sent_at: null,
+            expires_at: null,
+            notes: notes || existingAcc.notes || '',
+            updated_at: now
+          };
+          newOrUpdatedForSupabase.push(updatedAccounts[existingIndex]);
+          results.updatedFromExpiredCount++;
+          results.details.push({
+            row: i + 1,
+            identifier: isLink ? linkUrl : emailOrUser,
+            status: 'UPDATED_EXPIRED',
+            reason: 'Akun status EXPIRED diperbarui & diubah menjadi TERSEDIA'
+          });
+        } else {
+          // ATURAN 2: Akun TERSEDIA atau TERKIRIM -> DITOLAK
+          results.rejectedCount++;
+          results.details.push({
+            row: i + 1,
+            identifier: isLink ? linkUrl : emailOrUser,
+            status: 'REJECTED',
+            reason: `Akun sudah ada dengan status ${existingAcc.status} (Ditolak)`
+          });
+        }
+      } else {
+        // ATURAN 3: Akun Baru -> Tambahkan ke stok dengan status TERSEDIA
+        let encPass = '';
+        if (rawPass && !isLink) {
+          encPass = await CryptoUtil.encrypt(rawPass);
+        }
+
+        const newAcc = {
+          id: this._generateId(),
+          product_id: prodId,
+          access_type: accessType,
+          username_or_email: isLink ? linkUrl : emailOrUser,
+          encrypted_password: encPass,
+          link: linkUrl,
+          status: 'TERSEDIA',
+          customer_whatsapp: '',
+          duration: duration,
+          duration_unit: durationUnit,
+          sent_at: null,
+          expires_at: null,
+          notes: notes,
+          created_at: now,
+          updated_at: now
+        };
+
+        updatedAccounts.unshift(newAcc);
+        newOrUpdatedForSupabase.push(newAcc);
+        results.addedCount++;
+        results.details.push({
+          row: i + 1,
+          identifier: isLink ? linkUrl : emailOrUser,
+          status: 'ADDED_NEW',
+          reason: 'Akun baru ditambahkan ke stok TERSEDIA'
+        });
+      }
+    }
+
+    this._set(this.STORAGE_KEYS.ACCOUNTS, updatedAccounts);
+    if (newOrUpdatedForSupabase.length > 0) {
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, newOrUpdatedForSupabase);
+    }
+
+    return results;
   }
 
   // --- Templates CRUD ---

@@ -24,6 +24,7 @@ class AccExpressApp {
     this.previewIndo = '';
     this.previewEng = '';
     this._iconFrame = null;
+    this.parsedExcelRows = [];
   }
 
   refreshIcons() {
@@ -581,6 +582,11 @@ class AccExpressApp {
       await this.handleSaveTemplate();
     });
 
+    document.getElementById('importExcelForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.handleProcessImportSubmit();
+    });
+
     // ID KEY MODAL EVENT LISTENERS
     document.getElementById('openIdKeyModalBtn')?.addEventListener('click', () => {
       this.renderIdKeyTable();
@@ -840,6 +846,34 @@ class AccExpressApp {
 
     document.getElementById('dashDownloadExcelBtn')?.addEventListener('click', () => {
       this.downloadAccountsExcel('admin');
+    });
+
+    document.getElementById('openImportExcelModalBtn')?.addEventListener('click', () => {
+      this.populateProductDropdowns();
+      document.getElementById('importExcelForm')?.reset();
+      const previewWrapper = document.getElementById('excelPreviewWrapper');
+      if (previewWrapper) previewWrapper.style.display = 'none';
+      const processBtn = document.getElementById('processImportBtn');
+      if (processBtn) processBtn.disabled = true;
+      this.parsedExcelRows = [];
+      this.openModal('importExcelModal');
+    });
+
+    document.getElementById('downloadExcelTemplateBtn')?.addEventListener('click', () => {
+      this.downloadExcelTemplate();
+    });
+
+    document.getElementById('excelFileInput')?.addEventListener('change', (e) => {
+      this.handleExcelFileSelect(e);
+    });
+
+    ['importDefaultProduct', 'importDefaultDuration', 'importDefaultUnit'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        const fileInput = document.getElementById('excelFileInput');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+          this.handleExcelFileSelect({ target: fileInput });
+        }
+      });
     });
 
     const debouncedRenderAdmin = debounce(() => this.renderAdminAccounts(), 150);
@@ -1114,6 +1148,15 @@ class AccExpressApp {
       }
       tplProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Produk Spesifik --</option>' +
         prodsForTpl.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
+    }
+
+    const importProdSelect = document.getElementById('importDefaultProduct');
+    if (importProdSelect) {
+      const currentVal = importProdSelect.value;
+      importProdSelect.innerHTML = activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (currentVal && activeProducts.some(p => p.id === currentVal)) {
+        importProdSelect.value = currentVal;
+      }
     }
   }
 
@@ -2415,6 +2458,13 @@ class AccExpressApp {
           const prod = products.find(p => p.id === acc.product_id);
           const isLink = acc.access_type === 'LINK' || Boolean(acc.link);
 
+          let statusExpiredStr = 'TERSEDIA (Belum Expired)';
+          if (acc.status === 'EXPIRED') {
+            statusExpiredStr = `EXPIRED (${acc.expires_at ? TemplateEngine.formatDateIndo(acc.expires_at) : 'Masa Aktif Habis'})`;
+          } else if (acc.status === 'TERKIRIM') {
+            statusExpiredStr = acc.expires_at ? `Aktif s.d. ${TemplateEngine.formatDateIndo(acc.expires_at)}` : 'TERKIRIM';
+          }
+
           return {
             'No': idx + 1,
             'Produk': prod ? prod.name : 'Unknown Product',
@@ -2422,10 +2472,11 @@ class AccExpressApp {
             'Email / Username / Link': isLink ? (acc.link || acc.username_or_email) : (acc.username_or_email || '-'),
             'Password': decryptedPassMap[acc.id] || '-',
             'Status': acc.status || 'TERSEDIA',
+            'Status Expired': statusExpiredStr,
+            'Tanggal Expired': acc.expires_at ? TemplateEngine.formatDateIndo(acc.expires_at) : '-',
             'WhatsApp Customer': acc.customer_whatsapp || '-',
             'Durasi': acc.duration ? `${acc.duration} ${acc.duration_unit || 'Hari'}` : '-',
             'Tanggal Kirim': acc.sent_at ? TemplateEngine.formatDateIndo(acc.sent_at) : '-',
-            'Tanggal Expired': acc.expires_at ? TemplateEngine.formatDateIndo(acc.expires_at) : '-',
             'Catatan / Info': acc.notes || '-'
           };
         });
@@ -2446,10 +2497,11 @@ class AccExpressApp {
           { wch: 38 },  // Email / Link
           { wch: 22 },  // Password
           { wch: 14 },  // Status
+          { wch: 34 },  // Status Expired
+          { wch: 22 },  // Tanggal Expired
           { wch: 18 },  // WA Customer
           { wch: 14 },  // Durasi
           { wch: 22 },  // Tgl Kirim
-          { wch: 22 },  // Tgl Expired
           { wch: 28 }   // Catatan
         ];
 
@@ -2489,6 +2541,8 @@ class AccExpressApp {
         const expiredList = accounts.filter(a => a.status === 'EXPIRED');
         if (expiredList.length > 0) {
           addSheet(formatAccListToExcelRows(expiredList), 'Stok EXPIRED');
+        } else {
+          addSheet([{ 'Info': 'Tidak ada data akun berstatus EXPIRED saat ini.' }], 'Stok EXPIRED');
         }
 
         // 3. Sheet Berdasarkan Kategori Produk
@@ -2812,6 +2866,294 @@ class AccExpressApp {
     this.showToast(`✓ Data Enrollment Key "${enrollment}" berhasil disimpan!`, 'success');
     this.closeModal('addIdKeyFormModal');
     this.renderIdKeyTable();
+  }
+
+  // --- DOWNLOAD TEMPLATE EXCEL UNTUK UPLOAD MASSAL ---
+  downloadExcelTemplate() {
+    if (!window.XLSX || !window.XLSX.utils) {
+      this.showToast('Library Excel tidak tersedia.', 'error');
+      return;
+    }
+
+    const templateData = [
+      {
+        'Email / Username': 'sample.netflix1@gmail.com',
+        'Password': 'password123',
+        'Link Akses': ''
+      },
+      {
+        'Email / Username': 'sample.chatgpt2@gmail.com',
+        'Password': 'password567',
+        'Link Akses': ''
+      },
+      {
+        'Email / Username': '',
+        'Password': '',
+        'Link Akses': 'https://canva.com/brand/join?invite=sample_link_123'
+      }
+    ];
+
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(templateData);
+
+    ws['!cols'] = [
+      { wch: 32 },
+      { wch: 20 },
+      { wch: 50 }
+    ];
+
+    window.XLSX.utils.book_append_sheet(wb, ws, 'Template Stok');
+    window.XLSX.writeFile(wb, 'Template_Upload_Stok_Akun.xlsx');
+    this.showToast('✓ Template Excel (Minimalist) berhasil diunduh.', 'success');
+  }
+
+  // --- PARSE AND PREVIEW EXCEL FILE FOR BULK IMPORT ---
+  async handleExcelFileSelect(event) {
+    const file = event.target.files ? event.target.files[0] : null;
+    const previewWrapper = document.getElementById('excelPreviewWrapper');
+    const previewTbody = document.getElementById('excelPreviewTbody');
+    const previewCountEl = document.getElementById('excelPreviewCount');
+    const previewBadgesEl = document.getElementById('excelPreviewBadges');
+    const processBtn = document.getElementById('processImportBtn');
+
+    if (!file) {
+      if (previewWrapper) previewWrapper.style.display = 'none';
+      if (processBtn) processBtn.disabled = true;
+      this.parsedExcelRows = [];
+      return;
+    }
+
+    if (!window.XLSX) {
+      this.showToast('Library Excel belum dimuat.', 'error');
+      return;
+    }
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = window.XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName || !workbook.Sheets[firstSheetName]) {
+        this.showToast('Sheet Excel tidak ditemukan.', 'error');
+        return;
+      }
+
+      const firstSheet = workbook.Sheets[firstSheetName];
+      const rawRows = window.XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        this.showToast('File Excel tidak berisi data.', 'error');
+        if (previewWrapper) previewWrapper.style.display = 'none';
+        if (processBtn) processBtn.disabled = true;
+        this.parsedExcelRows = [];
+        return;
+      }
+
+      const products = db.getProducts();
+      const dbAccounts = db.getAccounts();
+      const defaultProdId = document.getElementById('importDefaultProduct')?.value || (products[0] ? products[0].id : '');
+      const defaultDuration = Number(document.getElementById('importDefaultDuration')?.value) || 30;
+      const defaultUnit = document.getElementById('importDefaultUnit')?.value || 'Hari';
+
+      this.parsedExcelRows = [];
+      let newCount = 0;
+      let expiredCount = 0;
+      let rejectedCount = 0;
+
+      const previewRowsHtml = [];
+      const batchSeenIdentifiers = new Set();
+
+      for (let idx = 0; idx < rawRows.length; idx++) {
+        const row = rawRows[idx];
+        const normalized = {};
+        for (const k of Object.keys(row)) {
+          normalized[k.trim().toLowerCase()] = String(row[k] || '').trim();
+        }
+
+        const prodName = normalized['produk'] || normalized['product'] || normalized['kategori'] || normalized['product_id'] || '';
+        const emailUser = normalized['email / username / link'] || normalized['email / username'] || normalized['email/username'] || normalized['email'] || normalized['username'] || normalized['user'] || '';
+        const passVal = normalized['password'] || normalized['pass'] || normalized['kata sandi'] || '';
+        const linkVal = normalized['link akses'] || normalized['link'] || normalized['url'] || normalized['url akses'] || '';
+        let typeVal = normalized['tipe akses'] || normalized['access type'] || normalized['tipe'] || '';
+
+        if (!typeVal) {
+          typeVal = (linkVal || emailUser.startsWith('http')) ? 'LINK' : 'ACCOUNT';
+        } else if (typeVal.toUpperCase().includes('LINK')) {
+          typeVal = 'LINK';
+        } else {
+          typeVal = 'ACCOUNT';
+        }
+
+        const durVal = normalized['durasi'] || normalized['duration'] || '';
+        const unitVal = normalized['satuan durasi'] || normalized['satuan'] || normalized['unit'] || '';
+        const notesVal = normalized['catatan'] || normalized['notes'] || normalized['keterangan'] || normalized['info'] || '';
+
+        const isLink = typeVal === 'LINK';
+        const mainIdentifier = isLink ? (linkVal || emailUser) : emailUser;
+        const mainIdentClean = mainIdentifier.trim().toLowerCase();
+
+        // Cari pencocokan produk
+        let displayProdName = prodName;
+        if (prodName) {
+          const matchedP = products.find(p => p.name.trim().toLowerCase() === prodName.trim().toLowerCase() || p.id === prodName);
+          if (matchedP) displayProdName = matchedP.name;
+        } else {
+          const defaultP = products.find(p => p.id === defaultProdId);
+          displayProdName = defaultP ? defaultP.name : 'Default';
+        }
+
+        let dbStatusStr = 'Belum Ada';
+        let actionBadge = '';
+
+        if (!mainIdentClean) {
+          dbStatusStr = '-';
+          actionBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--status-expired);">🔴 Ditolak (Kosong)</span>';
+          rejectedCount++;
+        } else {
+          const existingAcc = dbAccounts.find(acc => {
+            const accIsLink = acc.access_type === 'LINK' || Boolean(acc.link);
+            const accIdent = accIsLink ? (acc.link || acc.username_or_email || '') : (acc.username_or_email || '');
+            return accIdent.trim().toLowerCase() === mainIdentClean;
+          });
+
+          if (batchSeenIdentifiers.has(mainIdentClean)) {
+            dbStatusStr = existingAcc ? existingAcc.status : 'Duplikat di File';
+            actionBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--status-expired);">🔴 Ditolak (Duplikat File)</span>';
+            rejectedCount++;
+          } else if (existingAcc) {
+            dbStatusStr = existingAcc.status;
+            if (existingAcc.status === 'EXPIRED') {
+              actionBadge = '<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-primary);">🔵 Expired &rarr; Tersedia</span>';
+              expiredCount++;
+              batchSeenIdentifiers.add(mainIdentClean);
+            } else {
+              actionBadge = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--status-expired);">🔴 Ditolak (${existingAcc.status})</span>`;
+              rejectedCount++;
+            }
+          } else {
+            dbStatusStr = 'Belum Ada';
+            actionBadge = '<span class="badge" style="background: rgba(34, 197, 94, 0.15); color: var(--status-available);">🟢 Akun Baru</span>';
+            newCount++;
+            batchSeenIdentifiers.add(mainIdentClean);
+          }
+        }
+
+        this.parsedExcelRows.push({
+          product_name: prodName,
+          access_type: typeVal,
+          username_or_email: emailUser,
+          password: passVal,
+          link: linkVal,
+          duration: durVal,
+          duration_unit: unitVal,
+          notes: notesVal
+        });
+
+        const displayPass = isLink ? '-' : (passVal || '(Sesuai input)');
+        const displayDur = durVal ? `${durVal} ${unitVal || defaultUnit}` : `${defaultDuration} ${defaultUnit}`;
+
+        previewRowsHtml.push(`
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong>${displayProdName}</strong></td>
+            <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mainIdentifier || '-'}</td>
+            <td>${displayPass}</td>
+            <td>${displayDur}</td>
+            <td><span class="badge">${dbStatusStr}</span></td>
+            <td>${actionBadge}</td>
+          </tr>
+        `);
+      }
+
+      if (previewTbody) previewTbody.innerHTML = previewRowsHtml.join('');
+      if (previewCountEl) previewCountEl.innerText = rawRows.length;
+
+      if (previewBadgesEl) {
+        previewBadgesEl.innerHTML = `
+          <span style="color: var(--status-available); font-weight:700;">🟢 Baru: ${newCount}</span>
+          <span style="color: var(--accent-primary); font-weight:700;">🔵 Expired &rarr; Tersedia: ${expiredCount}</span>
+          <span style="color: var(--status-expired); font-weight:700;">🔴 Ditolak: ${rejectedCount}</span>
+        `;
+      }
+
+      if (previewWrapper) previewWrapper.style.display = 'block';
+      if (processBtn) processBtn.disabled = false;
+
+    } catch (e) {
+      console.error('Error parsing Excel file:', e);
+      this.showToast('Gagal membaca file Excel. Pastikan format file benar.', 'error');
+      if (previewWrapper) previewWrapper.style.display = 'none';
+      if (processBtn) processBtn.disabled = true;
+      this.parsedExcelRows = [];
+    }
+  }
+
+  // --- HANDLE BULK IMPORT SUBMIT ---
+  async handleProcessImportSubmit() {
+    if (!this.parsedExcelRows || this.parsedExcelRows.length === 0) {
+      this.showToast('Tidak ada data yang dapat diimport.', 'error');
+      return;
+    }
+
+    const defaultProdId = document.getElementById('importDefaultProduct')?.value;
+    const defaultDuration = Number(document.getElementById('importDefaultDuration')?.value) || 30;
+    const defaultDurationUnit = document.getElementById('importDefaultUnit')?.value || 'Hari';
+
+    this.showToast('Memproses upload massal akun...', 'info', 2500);
+
+    const results = await db.bulkUploadAccounts(this.parsedExcelRows, {
+      defaultProductId: defaultProdId,
+      defaultDuration: defaultDuration,
+      defaultDurationUnit: defaultDurationUnit
+    });
+
+    db.addActivityLog(
+      this.currentAdmin || 'staff',
+      'Upload Stok Massal',
+      'akun',
+      `Upload massal ${results.total} baris Excel: ${results.addedCount} akun baru, ${results.updatedFromExpiredCount} akun expired diperbarui, ${results.rejectedCount} ditolak`
+    );
+
+    // Update Result Modal UI
+    const addEl = document.getElementById('resAddedCount');
+    const upEl = document.getElementById('resUpdatedCount');
+    const rejEl = document.getElementById('resRejectedCount');
+
+    if (addEl) addEl.innerText = results.addedCount;
+    if (upEl) upEl.innerText = results.updatedFromExpiredCount;
+    if (rejEl) rejEl.innerText = results.rejectedCount;
+
+    const resultTbody = document.getElementById('importResultTbody');
+    if (resultTbody) {
+      resultTbody.innerHTML = results.details.map(d => {
+        let badge = '';
+        if (d.status === 'ADDED_NEW') {
+          badge = '<span class="badge" style="background: rgba(34, 197, 94, 0.15); color: var(--status-available);">🟢 AKUN BARU</span>';
+        } else if (d.status === 'UPDATED_EXPIRED') {
+          badge = '<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-primary);">🔵 EXPIRED &rarr; TERSEDIA</span>';
+        } else {
+          badge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: var(--status-expired);">🔴 DITOLAK</span>';
+        }
+        return `
+          <tr>
+            <td>${d.row}</td>
+            <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${d.identifier}</td>
+            <td>${badge}</td>
+            <td>${d.reason}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    this.closeModal('importExcelModal');
+    this.openModal('importResultModal');
+
+    // Refresh UI Tables
+    this.renderAdminAccounts();
+    this.renderInventoryTable();
+    this.renderSalesHubInventory();
+    if (this.currentAdmin) this.renderAdminDashboard();
+
+    this.showToast(`✓ Upload Selesai! ${results.addedCount + results.updatedFromExpiredCount} akun siap di stok TERSEDIA.`, 'success', 4000);
   }
 }
 

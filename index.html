@@ -439,10 +439,14 @@
             <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Stok Akun</h2>
             <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah, edit, dan hapus stok akun digital.</p>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <button id="adminDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
               style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
               <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i>
+            </button>
+            <button id="openImportExcelModalBtn" class="btn btn-secondary btn-sm" title="Upload Stok Massal via Excel"
+              style="height: 38px; padding: 0 0.85rem; font-size: 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+              <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i> Upload Massal Excel
             </button>
             <button id="openAddAccountModalBtn" class="btn btn-primary"><i data-lucide="plus"></i> Tambah Akun
               Baru</button>
@@ -1208,6 +1212,143 @@
           <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Simpan Data</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- IMPORT EXCEL MODAL (UPLOAD STOK MASSAL) -->
+  <div id="importExcelModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.45rem;">
+          <i data-lucide="upload-cloud" style="color: var(--accent-primary);"></i> Upload Stok Massal via Excel
+        </h3>
+        <button class="modal-close-btn" data-close="importExcelModal">&times;</button>
+      </div>
+
+      <!-- Banner Info Aturan Import -->
+      <div style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-primary); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.82rem;">
+        <div style="font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+          <i data-lucide="info" style="width: 15px; height: 15px; color: var(--accent-primary);"></i> Aturan & Format Excel Upload Stok (Minimalis / Wajib Only):
+        </div>
+        <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-muted); line-height: 1.45;">
+          <li>Format file yang didukung: <strong>.xlsx, .xls, .csv</strong></li>
+          <li><strong>Kolom Wajib Isi:</strong> <code>Email / Username</code> & <code>Password</code> (untuk Akun) ATAU <code>Link Akses</code> (untuk Link).</li>
+          <li><strong>Otomatisasi:</strong> Kategori Produk & Durasi yang kosong akan mengikuti <em>Default Kategori Produk</em> & <em>Default Durasi</em> di bawah.</li>
+        </ul>
+        <div style="margin-top: 0.65rem; text-align: right;">
+          <button type="button" id="downloadExcelTemplateBtn" class="btn btn-secondary btn-xs" style="font-size: 0.76rem; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid var(--border-color); font-weight: 600; cursor: pointer;">
+            <i data-lucide="download" style="width: 12px; height: 12px; color: var(--accent-primary);"></i> Unduh Format Template Excel (.xlsx)
+          </button>
+        </div>
+      </div>
+
+      <form id="importExcelForm">
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Pilih File Excel / CSV <span style="color:var(--status-expired)">*</span></label>
+          <input type="file" id="excelFileInput" class="form-input" accept=".xlsx, .xls, .csv" required style="padding: 0.45rem;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
+          <div class="form-group">
+            <label class="form-label">Default Kategori Produk</label>
+            <select id="importDefaultProduct" class="form-select"></select>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Produk' di Excel tidak diisi.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Default Durasi Akun</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <input type="number" id="importDefaultDuration" class="form-input" value="30" min="1" style="width: 70px;" required>
+              <select id="importDefaultUnit" class="form-select" style="flex: 1;">
+                <option value="Hari" selected>Hari</option>
+                <option value="Minggu">Minggu</option>
+                <option value="Bulan">Bulan</option>
+              </select>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Durasi' di Excel tidak diisi.</span>
+          </div>
+        </div>
+
+        <!-- Preview Table Box -->
+        <div id="excelPreviewWrapper" style="display: none; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.4rem;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">Pratinjau Data File (<span id="excelPreviewCount">0</span> baris)</span>
+            <div id="excelPreviewBadges" style="display: flex; gap: 0.4rem; font-size: 0.72rem; flex-wrap: wrap;"></div>
+          </div>
+
+          <div class="table-responsive" style="max-height: 210px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+            <table class="data-table" style="font-size: 0.78rem;">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Produk</th>
+                  <th>Email / Link</th>
+                  <th>Password</th>
+                  <th>Durasi</th>
+                  <th>Status DB Saat Ini</th>
+                  <th>Hasil Analisis System</th>
+                </tr>
+              </thead>
+              <tbody id="excelPreviewTbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="importExcelModal">Batal</button>
+          <button type="submit" id="processImportBtn" class="btn btn-primary" disabled>
+            <i data-lucide="upload"></i> Proses Upload Massal
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- IMPORT RESULT SUMMARY MODAL -->
+  <div id="importResultModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.45rem;">
+          <i data-lucide="check-circle-2" style="color: var(--status-available);"></i> Laporan Upload Stok Massal
+        </h3>
+        <button class="modal-close-btn" data-close="importResultModal">&times;</button>
+      </div>
+
+      <!-- Ringkasan Stat Cards -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; text-align: center;">
+        <div style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--status-available);" id="resAddedCount">0</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">AKUN BARU</div>
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-primary);" id="resUpdatedCount">0</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">EXPIRED &rarr; TERSEDIA</div>
+        </div>
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--status-expired);" id="resRejectedCount">0</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DITOLAK</div>
+        </div>
+      </div>
+
+      <div class="table-responsive" style="max-height: 230px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+        <table class="data-table" style="font-size: 0.78rem;">
+          <thead>
+            <tr>
+              <th>Baris</th>
+              <th>Email / Link</th>
+              <th>Status Hasil</th>
+              <th>Keterangan / Alasan</th>
+            </tr>
+          </thead>
+          <tbody id="importResultTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-full" data-close="importResultModal">
+          <i data-lucide="check"></i> Selesai & Refresh Stok
+        </button>
+      </div>
     </div>
   </div>
 
