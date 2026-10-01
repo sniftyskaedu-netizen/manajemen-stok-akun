@@ -434,28 +434,35 @@
 
       <!-- KELOLA AKUN TAB -->
       <div id="admin-accounts" class="admin-tab-content" style="display: none;">
-        <div class="filter-bar">
+        <div class="filter-bar" style="margin-bottom: 0.85rem;">
           <div>
             <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Stok Akun</h2>
             <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah, edit, dan hapus stok akun digital.</p>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <button id="openImportExcelModalBtn" class="btn btn-secondary btn-sm" title="Upload Stok Massal via Excel"
-              style="height: 38px; padding: 0 0.85rem; font-size: 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-              <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i> Upload Massal Excel
-            </button>
-            <button id="adminDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
-              style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
-              <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i>
-            </button>
-            <button id="openBulkExpireModalBtn" class="btn btn-warning btn-sm" title="Expiredkan Stok Massal Berdasarkan Kategori"
-              style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
-              <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
-            </button>
-            <button id="openAddAccountModalBtn" class="btn btn-primary btn-sm" title="Tambah Akun Baru"
-              style="height: 38px; padding: 0 0.85rem; font-size: 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-              <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Tambah Akun Baru
-            </button>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.45rem;">
+            <!-- BARIS ATAS: IKON ACTION (DOWNLOAD EXCEL & EXPIRED MASSAL) -->
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <button id="adminDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
+                style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
+                <i data-lucide="file-spreadsheet" style="width: 17px; height: 17px;"></i>
+              </button>
+              <button id="openBulkExpireModalBtn" class="btn btn-warning btn-sm" title="Expiredkan Stok Massal Berdasarkan Kategori"
+                style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
+                <i data-lucide="clock" style="width: 17px; height: 17px;"></i>
+              </button>
+            </div>
+
+            <!-- BARIS DIBAWAH: SEJAJAR KESAMPING (UPLOAD MASSAL EXCEL DI KIRI, TAMBAH AKUN BARU DI KANAN) -->
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <button id="openImportExcelModalBtn" class="btn btn-secondary btn-sm" title="Upload Stok Massal via Excel"
+                style="height: 36px; padding: 0 0.85rem; font-size: 0.82rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i data-lucide="upload-cloud" style="width: 15px; height: 15px;"></i> Upload Massal Excel
+              </button>
+              <button id="openAddAccountModalBtn" class="btn btn-primary btn-sm" title="Tambah Akun Baru"
+                style="height: 36px; padding: 0 0.85rem; font-size: 0.82rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Tambah Akun Baru
+              </button>
+            </div>
           </div>
         </div>
 
