@@ -444,6 +444,10 @@
               style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
               <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i>
             </button>
+            <button id="openBulkExpireModalBtn" class="btn btn-warning btn-sm" title="Expiredkan Stok Massal Berdasarkan Kategori"
+              style="height: 38px; padding: 0 0.85rem; font-size: 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+              <i data-lucide="clock" style="width: 16px; height: 16px;"></i> Expiredkan Massal
+            </button>
             <button id="openImportExcelModalBtn" class="btn btn-secondary btn-sm" title="Upload Stok Massal via Excel"
               style="height: 38px; padding: 0 0.85rem; font-size: 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
               <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i> Upload Massal Excel
@@ -1349,6 +1353,63 @@
           <i data-lucide="check"></i> Selesai & Refresh Stok
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- BULK EXPIRE BY CATEGORY MODAL -->
+  <div id="bulkExpireModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px; border-left: 5px solid var(--status-warning);">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--status-warning); display: flex; align-items: center; gap: 0.45rem;">
+          <i data-lucide="clock"></i> Expiredkan Massal Stok Akun per Kategori
+        </h3>
+        <button class="modal-close-btn" data-close="bulkExpireModal">&times;</button>
+      </div>
+
+      <!-- Banner Penjelasan Fitur -->
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.83rem; line-height: 1.45; color: var(--text-main);">
+        <div style="font-weight: 700; color: var(--status-warning); font-size: 0.9rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+          <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Informasi Fitur Expired Massal:
+        </div>
+        Tindakan ini akan meng-<strong>EXPIRED</strong>-kan akun pada kategori yang dipilih. Setelah berstatus <strong>EXPIRED</strong>, Anda dapat menambahkan kembali akun dengan Email / Link yang sama tanpa terkena penolakan duplikat.
+      </div>
+
+      <form id="bulkExpireForm">
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Pilih Kategori Produk <span style="color:var(--status-expired)">*</span></label>
+          <select id="bulkExpireProductSelect" class="form-select" required>
+            <option value="ALL">-- Semua Kategori Produk --</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">Cakupan Status Akun <span style="color:var(--status-expired)">*</span></label>
+          <select id="bulkExpireScopeSelect" class="form-select">
+            <option value="ALL_ACTIVE" selected>Semua Akun Aktif (TERSEDIA & TERKIRIM)</option>
+            <option value="TERSEDIA">Hanya Akun TERSEDIA</option>
+            <option value="TERKIRIM">Hanya Akun TERKIRIM</option>
+          </select>
+        </div>
+
+        <div id="bulkExpirePreviewBox" style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.75rem 0.9rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
+          Jumlah akun yang akan di-expiredkan: <strong id="bulkExpireTargetCount" style="color: var(--status-warning); font-size: 1.05rem;">0</strong> akun
+        </div>
+
+        <!-- VALIDASI CENTANG SAFETY CHECKBOX -->
+        <div class="form-group" style="margin-bottom: 1.25rem; background: var(--bg-surface-hover); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <label style="display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600; margin-bottom: 0;">
+            <input type="checkbox" id="bulkExpireConfirmCheckbox" style="accent-color: var(--status-warning); width: 16px; height: 16px; cursor: pointer;" required>
+            <span>Saya yakin ingin meng-expiredkan seluruh akun pada kategori yang dipilih</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="bulkExpireModal">Batal</button>
+          <button type="submit" id="confirmBulkExpireBtn" class="btn btn-warning" disabled style="opacity: 0.6; cursor: not-allowed;">
+            <i data-lucide="clock"></i> Ya, Expiredkan Massal
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

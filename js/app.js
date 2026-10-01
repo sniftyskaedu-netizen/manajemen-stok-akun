@@ -876,6 +876,30 @@ class AccExpressApp {
       });
     });
 
+    document.getElementById('openBulkExpireModalBtn')?.addEventListener('click', () => {
+      this.openBulkExpireModal();
+    });
+
+    ['bulkExpireProductSelect', 'bulkExpireScopeSelect'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        this.updateBulkExpirePreview();
+      });
+    });
+
+    document.getElementById('bulkExpireConfirmCheckbox')?.addEventListener('change', (e) => {
+      const confirmBtn = document.getElementById('confirmBulkExpireBtn');
+      if (confirmBtn) {
+        confirmBtn.disabled = !e.target.checked;
+        confirmBtn.style.opacity = e.target.checked ? '1' : '0.6';
+        confirmBtn.style.cursor = e.target.checked ? 'pointer' : 'not-allowed';
+      }
+    });
+
+    document.getElementById('bulkExpireForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.handleBulkExpireSubmit();
+    });
+
     const debouncedRenderAdmin = debounce(() => this.renderAdminAccounts(), 150);
     ['adminAccSearch', 'adminAccProductFilter', 'adminAccStatusFilter'].forEach(id => {
       document.getElementById(id)?.addEventListener('input', debouncedRenderAdmin);
@@ -1157,6 +1181,14 @@ class AccExpressApp {
       if (currentVal && activeProducts.some(p => p.id === currentVal)) {
         importProdSelect.value = currentVal;
       }
+    }
+
+    const bulkExpireProdSelect = document.getElementById('bulkExpireProductSelect');
+    if (bulkExpireProdSelect) {
+      const currentVal = bulkExpireProdSelect.value || 'ALL';
+      bulkExpireProdSelect.innerHTML = '<option value="ALL">-- Semua Kategori Produk --</option>' +
+        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      bulkExpireProdSelect.value = currentVal;
     }
   }
 
@@ -2081,6 +2113,7 @@ class AccExpressApp {
           </td>
           <td style="text-align: right;">
             <div class="action-buttons-cell">
+              <button class="btn btn-warning btn-xs expire-cat-btn" data-prodid="${prod.id}" title="Expiredkan Semua Akun pada Kategori Ini"><i data-lucide="clock"></i> Expiredkan</button>
               <button class="btn btn-secondary btn-xs edit-prod-btn" data-prodid="${prod.id}"><i data-lucide="edit-3"></i> Edit</button>
               <button class="btn btn-danger btn-xs delete-prod-btn" data-prodid="${prod.id}"><i data-lucide="trash-2"></i></button>
             </div>
@@ -2091,6 +2124,13 @@ class AccExpressApp {
 
     tbody.innerHTML = rowsHtml;
     if (window.lucide) window.lucide.createIcons();
+
+    tbody.querySelectorAll('.expire-cat-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-prodid');
+        this.openBulkExpireModal(id);
+      });
+    });
 
     tbody.querySelectorAll('.edit-prod-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -3154,6 +3194,85 @@ class AccExpressApp {
     if (this.currentAdmin) this.renderAdminDashboard();
 
     this.showToast(`✓ Upload Selesai! ${results.addedCount + results.updatedFromExpiredCount} akun siap di stok TERSEDIA.`, 'success', 4000);
+  }
+
+  // --- BULK EXPIRE BY CATEGORY MODAL & HANDLERS ---
+  openBulkExpireModal(preselectedProductId = '') {
+    this.populateProductDropdowns();
+    const selectEl = document.getElementById('bulkExpireProductSelect');
+    if (selectEl) {
+      selectEl.value = preselectedProductId || 'ALL';
+    }
+    const scopeEl = document.getElementById('bulkExpireScopeSelect');
+    if (scopeEl) {
+      scopeEl.value = 'ALL_ACTIVE';
+    }
+    const checkboxEl = document.getElementById('bulkExpireConfirmCheckbox');
+    if (checkboxEl) {
+      checkboxEl.checked = false;
+    }
+    const confirmBtn = document.getElementById('confirmBulkExpireBtn');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.6';
+      confirmBtn.style.cursor = 'not-allowed';
+    }
+    this.updateBulkExpirePreview();
+    this.openModal('bulkExpireModal');
+  }
+
+  updateBulkExpirePreview() {
+    const productId = document.getElementById('bulkExpireProductSelect')?.value || 'ALL';
+    const scope = document.getElementById('bulkExpireScopeSelect')?.value || 'ALL_ACTIVE';
+    const targetCountEl = document.getElementById('bulkExpireTargetCount');
+    if (!targetCountEl) return;
+
+    const accounts = db.getAccounts();
+    const matchCount = accounts.filter(acc => {
+      const matchProd = !productId || productId === 'ALL' || acc.product_id === productId;
+      let matchScope = false;
+
+      if (scope === 'TERSEDIA') {
+        matchScope = (acc.status === 'TERSEDIA');
+      } else if (scope === 'TERKIRIM') {
+        matchScope = (acc.status === 'TERKIRIM');
+      } else {
+        matchScope = (acc.status === 'TERSEDIA' || acc.status === 'TERKIRIM');
+      }
+
+      return matchProd && matchScope;
+    }).length;
+
+    targetCountEl.innerText = matchCount;
+  }
+
+  async handleBulkExpireSubmit() {
+    const checkboxEl = document.getElementById('bulkExpireConfirmCheckbox');
+    if (checkboxEl && !checkboxEl.checked) {
+      this.showToast('Silakan centang persetujuan konfirmasi terlebih dahulu.', 'error');
+      return;
+    }
+
+    const productId = document.getElementById('bulkExpireProductSelect')?.value || 'ALL';
+    const scope = document.getElementById('bulkExpireScopeSelect')?.value || 'ALL_ACTIVE';
+
+    const result = await db.expireAccountsByCategory(productId, scope);
+
+    if (result.count === 0) {
+      this.showToast('Tidak ada akun aktif yang memenuhi kriteria untuk di-expiredkan.', 'info');
+      this.closeModal('bulkExpireModal');
+      return;
+    }
+
+    this.showToast(`✓ Berhasil meng-expiredkan ${result.count} akun pada kategori "${result.categoryName}".`, 'success');
+    this.closeModal('bulkExpireModal');
+
+    // Refresh UI Tables
+    this.renderAdminAccounts();
+    this.renderAdminProducts();
+    this.renderAdminDashboard();
+    this.renderInventoryTable();
+    this.renderSalesHubInventory();
   }
 }
 

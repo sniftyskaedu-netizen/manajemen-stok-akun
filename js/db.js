@@ -866,6 +866,8 @@ class AccExpressDB {
 
     for (const acc of accounts) {
       if (excludeId && String(acc.id) === String(excludeId)) continue;
+      // ABAYKAN AKUN DENGAN STATUS EXPIRED AGAR BISA DITAMBAHKAN KEMBALI
+      if (acc.status === 'EXPIRED') continue;
 
       const accUser = (acc.username_or_email || '').trim().toLowerCase();
       const accLink = (acc.link || '').trim().toLowerCase();
@@ -932,12 +934,35 @@ class AccExpressDB {
 
     let savedAcc = null;
 
+    // JIKA TIDAK ADA ID, CEK APAKAH ADA AKUN STATUS EXPIRED DENGAN EMAIL/LINK SAMA UNTUK DIPERBARUI
+    if (!accData.id) {
+      const isLinkType = accData.access_type === 'LINK' || Boolean(accData.link);
+      const mainIdent = isLinkType
+        ? (accData.link || accData.username_or_email || '').trim().toLowerCase()
+        : (accData.username_or_email || '').trim().toLowerCase();
+
+      if (mainIdent) {
+        const existingExpiredAcc = accounts.find(a => {
+          if (a.status !== 'EXPIRED') return false;
+          const aIsLink = a.access_type === 'LINK' || Boolean(a.link);
+          const aIdent = aIsLink
+            ? (a.link || a.username_or_email || '').trim().toLowerCase()
+            : (a.username_or_email || '').trim().toLowerCase();
+          return aIdent === mainIdent;
+        });
+        if (existingExpiredAcc) {
+          accData.id = existingExpiredAcc.id;
+        }
+      }
+    }
+
     if (accData.id && String(accData.id).trim() !== '') {
       const idx = accounts.findIndex(a => a.id === accData.id);
       if (idx !== -1) {
         accounts[idx] = {
           ...accounts[idx],
           ...accData,
+          status: accData.status || (accounts[idx].status === 'EXPIRED' ? 'TERSEDIA' : accounts[idx].status),
           encrypted_password: encPass || accounts[idx].encrypted_password,
           updated_at: new Date().toISOString()
         };
@@ -976,6 +1001,54 @@ class AccExpressDB {
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
     await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc);
     return savedAcc;
+  }
+
+  // --- EXPIRE MASSAL AKUN BERDASARKAN KATEGORI ---
+  async expireAccountsByCategory(productId = '', targetStatusScope = 'ALL_ACTIVE') {
+    let accounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    const now = new Date().toISOString();
+    let count = 0;
+    const products = this.getProducts();
+    let targetProdName = 'Semua Kategori Produk';
+
+    if (productId && productId !== 'ALL') {
+      const prod = products.find(p => p.id === productId);
+      if (prod) targetProdName = prod.name;
+    }
+
+    accounts.forEach(acc => {
+      const matchProd = !productId || productId === 'ALL' || acc.product_id === productId;
+      let matchScope = false;
+
+      if (targetStatusScope === 'TERSEDIA') {
+        matchScope = (acc.status === 'TERSEDIA');
+      } else if (targetStatusScope === 'TERKIRIM') {
+        matchScope = (acc.status === 'TERKIRIM');
+      } else {
+        // ALL_ACTIVE (TERSEDIA & TERKIRIM)
+        matchScope = (acc.status === 'TERSEDIA' || acc.status === 'TERKIRIM');
+      }
+
+      if (matchProd && matchScope) {
+        acc.status = 'EXPIRED';
+        acc.expires_at = now;
+        acc.updated_at = now;
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts);
+      await this.addActivityLog(
+        'admin',
+        'Mass Expire Akun',
+        'akun',
+        `Berhasil meng-expiredkan ${count} akun pada kategori "${targetProdName}"`
+      );
+    }
+
+    return { count, categoryName: targetProdName };
   }
 
   async deleteAccount(id) {
