@@ -1611,6 +1611,31 @@ body:not(.dark-mode) .form-textarea:focus {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* MOBILE ACTION BUTTONS FULL WIDTH ALIGNMENT */
+  .admin-acc-btn-group {
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  .admin-acc-action-btns {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.45rem !important;
+  }
+
+  .admin-acc-action-btns .btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 50% !important;
+    justify-content: center !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 0.76rem !important;
+    padding: 0 0.35rem !important;
+  }
 }
 
 @media (max-width: 480px) {
