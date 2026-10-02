@@ -19,21 +19,25 @@ class AccExpressDB {
       ACTIVITY_LOGS: 'accexpress_activity_logs',
       ADMIN_USERS: 'accexpress_admin_users',
       SETTINGS: 'accexpress_settings',
-      ID_KEYS: 'accexpress_id_keys'
+      ID_KEYS: 'accexpress_id_keys',
+      VERSIONS: 'accexpress_versions'
     };
   }
 
   async init() {
-    // 1. Sync data dari database Cloud Supabase
-    await this.syncFromSupabase();
+    // 1. Sync data dari database Cloud Supabase (non-blocking agar app langsung tampil dari cache)
+    this.syncFromSupabase().catch(e => console.warn('[Supabase Sync Init Warning]:', e));
 
     // 2. Jika data lokal / Supabase masih kosong, jalankan seeding awal
     if (!localStorage.getItem(this.STORAGE_KEYS.ADMIN_USERS)) {
       await this.seedInitialData();
     }
 
-    // 3. Update status akun expired secara otomatis
-    await this.updateAutomaticExpirations();
+    // 3. Otomatis klasifikasikan versi produk berdasarkan kata kunci nama produk
+    this.autoClassifyAllProducts();
+
+    // 4. Update status akun expired secara otomatis
+    this.updateAutomaticExpirations().catch(e => console.warn(e));
   }
 
   // --- Remote Cloud Sync Methods ---
@@ -101,7 +105,7 @@ class AccExpressDB {
 
     if (updatedAccs.length > 0) {
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, updatedAccs);
+      upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, updatedAccs).catch(e => console.warn('[Supabase Expiration Sync Warning]:', e));
     }
   }
 
@@ -124,6 +128,8 @@ class AccExpressDB {
       {
         id: 'prod_netflix',
         name: 'Netflix Premium',
+        version: '',
+        sub_category: 'Profile Shared 4K Ultra HD',
         description: 'Akun Netflix Ultra HD 4K Profile Shared / Private',
         default_duration: 30,
         duration_unit: 'Hari',
@@ -133,6 +139,8 @@ class AccExpressDB {
       {
         id: 'prod_spotify',
         name: 'Spotify Premium',
+        version: '',
+        sub_category: 'Individual & Family Plan',
         description: 'Akun Spotify Individual / Family Plan Premium',
         default_duration: 30,
         duration_unit: 'Hari',
@@ -142,6 +150,8 @@ class AccExpressDB {
       {
         id: 'prod_canva',
         name: 'Canva Pro',
+        version: '',
+        sub_category: 'Link Undangan Team Member',
         description: 'Canva Pro Lifetime / Member Invitation',
         default_duration: 1,
         duration_unit: 'Bulan',
@@ -151,6 +161,8 @@ class AccExpressDB {
       {
         id: 'prod_youtube',
         name: 'YouTube Premium',
+        version: '',
+        sub_category: 'Individual & Music Plan',
         description: 'YouTube Premium & Music Individual Plan',
         default_duration: 30,
         duration_unit: 'Hari',
@@ -160,6 +172,8 @@ class AccExpressDB {
       {
         id: 'prod_chatgpt',
         name: 'ChatGPT Plus',
+        version: '',
+        sub_category: 'GPT-4o Access Private Account',
         description: 'ChatGPT Plus GPT-4o Access Private Account',
         default_duration: 30,
         duration_unit: 'Hari',
@@ -748,7 +762,7 @@ class AccExpressDB {
     }
 
     this._set(this.STORAGE_KEYS.ID_KEYS, keys);
-    await upsertToSupabase(SUPABASE_TABLES.ID_KEYS, savedKey);
+    upsertToSupabase(SUPABASE_TABLES.ID_KEYS, savedKey).catch(e => console.warn('[Supabase Sync Error]', e));
     return savedKey;
   }
 
@@ -771,7 +785,7 @@ class AccExpressDB {
     let keys = this.getIdKeys();
     keys = keys.filter(k => String(k.id || '').trim() !== cleanId);
     this._set(this.STORAGE_KEYS.ID_KEYS, keys);
-    await deleteFromSupabase(SUPABASE_TABLES.ID_KEYS, cleanId);
+    deleteFromSupabase(SUPABASE_TABLES.ID_KEYS, cleanId).catch(e => console.warn('[Supabase Sync Error]', e));
     return true;
   }
 
@@ -801,12 +815,87 @@ class AccExpressDB {
   }
 
   getActiveProducts() {
-    return this.getProducts().filter(p => p.status === 'Aktif');
+    return this.getProducts().filter(p => p.status === 'Aktif' || p.status === 'Active' || (p.status !== 'Tidak Aktif' && p.status !== 'Inactive'));
   }
 
   getProductById(id) {
     if (!id) return null;
-    return this.getProducts().find(p => p.id === id);
+    return this.getProducts().find(p => p.id === id || p.name === id);
+  }
+
+  // --- Versions CRUD ---
+  getVersions() {
+    const raw = localStorage.getItem(this.STORAGE_KEYS.VERSIONS);
+    let list = [];
+    if (raw) {
+      try { list = JSON.parse(raw); } catch (e) { list = []; }
+    }
+    const defaultVersions = ['OLD VIEW', 'NEW VIEW', 'NEW VIEW V2'];
+    if (!Array.isArray(list) || list.length === 0) {
+      list = defaultVersions;
+      localStorage.setItem(this.STORAGE_KEYS.VERSIONS, JSON.stringify(list));
+    } else {
+      if (list.includes('Default View')) {
+        list = list.filter(v => v !== 'Default View' && String(v).trim() !== '');
+        localStorage.setItem(this.STORAGE_KEYS.VERSIONS, JSON.stringify(list));
+      }
+    }
+    return list;
+  }
+
+  detectVersionFromText(text = '') {
+    if (!text) return '';
+    const upper = String(text).toUpperCase();
+    if (upper.includes('NEW VIEW V2') || upper.includes('NEW VIEW 2') || upper.includes('V2')) {
+      return 'NEW VIEW V2';
+    }
+    if (upper.includes('NEW VIEW') || upper.includes('NEW')) {
+      return 'NEW VIEW';
+    }
+    if (upper.includes('OLD VIEW') || upper.includes('OLD')) {
+      return 'OLD VIEW';
+    }
+    return '';
+  }
+
+  autoClassifyAllProducts() {
+    // Disabled auto-classification to strictly preserve exact user input
+  }
+
+  async addVersion(versionName) {
+    const clean = String(versionName || '').trim();
+    if (!clean) return false;
+    const versions = this.getVersions();
+    if (!versions.includes(clean)) {
+      versions.push(clean);
+      localStorage.setItem(this.STORAGE_KEYS.VERSIONS, JSON.stringify(versions));
+    }
+    return true;
+  }
+
+  async deleteVersion(versionName) {
+    const clean = String(versionName || '').trim();
+    if (!clean) return false;
+    let versions = this.getVersions();
+    versions = versions.filter(v => v !== clean);
+    if (versions.length === 0) versions = ['NEW VIEW'];
+    localStorage.setItem(this.STORAGE_KEYS.VERSIONS, JSON.stringify(versions));
+    return true;
+  }
+
+  getMainCategoryForProduct(prod) {
+    if (!prod) return '';
+    if (prod.version && String(prod.version).trim()) return prod.version.trim();
+    if (prod.main_category && String(prod.main_category).trim()) return prod.main_category.trim();
+
+    const detected = this.detectVersionFromText((prod.name || '') + ' ' + (prod.sub_category || '') + ' ' + (prod.description || ''));
+    if (detected) return detected;
+
+    return 'OLD VIEW';
+  }
+
+  getMainCategories() {
+    return this.getVersions();
   }
 
   async saveProduct(productData) {
@@ -836,20 +925,64 @@ class AccExpressDB {
     }
 
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
-    await upsertToSupabase(SUPABASE_TABLES.PRODUCTS, savedProd);
+    upsertToSupabase(SUPABASE_TABLES.PRODUCTS, savedProd).catch(e => console.warn('[Supabase Sync Error]', e));
     return savedProd;
   }
 
   async deleteProduct(id) {
+    const prod = this.getProductById(id);
+    const prodName = prod ? prod.name : id;
+    const prodVersion = prod ? (prod.version || this.getMainCategoryForProduct(prod)) : '';
+
+    // 1. Update status semua akun terkait menjadi EXPIRED & pertahankan nama produknya
+    const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS) || [];
+    let accountsUpdated = false;
+
+    accounts.forEach(acc => {
+      if (acc.product_id === id || acc.product_id === prodName) {
+        if (!acc.product_name && prodName) {
+          acc.product_name = prodName;
+        }
+        if (!acc.version && prodVersion) {
+          acc.version = prodVersion;
+        }
+        acc.status = 'EXPIRED';
+        accountsUpdated = true;
+        upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, acc).catch(e => console.warn('[Supabase Sync Error]', e));
+      }
+    });
+
+    if (accountsUpdated) {
+      this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+    }
+
+    // 2. Hapus produk dari list produk
     const products = this.getProducts().filter(p => p.id !== id);
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
-    await deleteFromSupabase(SUPABASE_TABLES.PRODUCTS, id);
+    deleteFromSupabase(SUPABASE_TABLES.PRODUCTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
   }
 
   // --- Accounts CRUD ---
   getAccounts() {
-    this.updateAutomaticExpirations();
     const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    const now = new Date();
+    let hasExpired = false;
+
+    accounts.forEach(acc => {
+      if (acc.status === 'TERKIRIM' && acc.expires_at) {
+        const expDate = new Date(acc.expires_at);
+        if (now >= expDate) {
+          acc.status = 'EXPIRED';
+          hasExpired = true;
+        }
+      }
+    });
+
+    if (hasExpired) {
+      this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      this.updateAutomaticExpirations().catch(e => console.warn(e));
+    }
+
     return accounts.sort((a, b) => {
       const dateA = a.sent_at ? new Date(a.sent_at).getTime() : (a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0));
       const dateB = b.sent_at ? new Date(b.sent_at).getTime() : (b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0));
@@ -978,9 +1111,13 @@ class AccExpressDB {
 
       const isLinkType = cleanData.access_type === 'LINK' || Boolean(cleanData.link);
 
+      const targetProd = this.getProductById(cleanData.product_id);
+
       savedAcc = {
         id: this._generateId(),
         product_id: cleanData.product_id,
+        product_name: targetProd ? targetProd.name : (cleanData.product_name || cleanData.product_id),
+        version: targetProd ? (targetProd.version || this.getMainCategoryForProduct(targetProd)) : (cleanData.version || ''),
         access_type: isLinkType ? 'LINK' : 'ACCOUNT',
         username_or_email: isLinkType ? (cleanData.link || cleanData.username_or_email || '') : (cleanData.username_or_email || ''),
         encrypted_password: isLinkType ? '' : encPass,
@@ -999,7 +1136,7 @@ class AccExpressDB {
     }
 
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc);
+    upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc).catch(e => console.warn('[Supabase Sync Error]', e));
     return savedAcc;
   }
 
@@ -1039,7 +1176,7 @@ class AccExpressDB {
 
     if (count > 0) {
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts);
+      upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts).catch(e => console.warn('[Supabase Sync Error]', e));
       await this.addActivityLog(
         'admin',
         'Mass Expire Akun',
@@ -1054,7 +1191,7 @@ class AccExpressDB {
   async deleteAccount(id) {
     const accounts = this.getAccounts().filter(a => a.id !== id);
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    await deleteFromSupabase(SUPABASE_TABLES.ACCOUNTS, id);
+    deleteFromSupabase(SUPABASE_TABLES.ACCOUNTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
   }
 
   async resetAccount(id) {
@@ -1067,7 +1204,7 @@ class AccExpressDB {
       accounts[idx].expires_at = null;
       accounts[idx].updated_at = new Date().toISOString();
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts[idx]);
+      upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts[idx]).catch(e => console.warn('[Supabase Sync Error]', e));
       return accounts[idx];
     }
     return null;
@@ -1130,7 +1267,7 @@ class AccExpressDB {
       // Cari apakah akun dengan email / link yang sama sudah ada di daftar akun
       const existingIndex = updatedAccounts.findIndex(acc => {
         const accIsLink = acc.access_type === 'LINK' || Boolean(acc.link);
-        const accIdent = accIsLink 
+        const accIdent = accIsLink
           ? (acc.link || acc.username_or_email || '').trim().toLowerCase()
           : (acc.username_or_email || '').trim().toLowerCase();
         return accIdent === mainIdentifier;
@@ -1237,9 +1374,21 @@ class AccExpressDB {
   getTemplateForProduct(productId) {
     const tpls = this.getTemplates();
     if (productId) {
+      // 1. Priority 1: Specific Product Template
       const prodTpl = tpls.find(t => t.type === 'PRODUCT' && t.product_id === productId);
       if (prodTpl) return prodTpl;
+
+      // 2. Priority 2: Specific Version Template
+      const prod = this.getProductById(productId);
+      if (prod) {
+        const prodVersion = this.getMainCategoryForProduct(prod);
+        if (prodVersion) {
+          const versionTpl = tpls.find(t => t.type === 'VERSION' && ((t.version && t.version === prodVersion) || t.product_id === prodVersion));
+          if (versionTpl) return versionTpl;
+        }
+      }
     }
+    // 3. Priority 3: Default / Global Template
     return this.getDefaultTemplate();
   }
 

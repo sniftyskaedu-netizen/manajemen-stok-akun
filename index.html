@@ -72,11 +72,13 @@
           <!-- KANAN: ID KEY BUTTON & TIPE AKSES TOGGLE -->
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <!-- TOMBOL ULTRA-COMPACT LIHAT ID KEY & ENROLLMENT KEY -->
-            <button type="button" id="openIdKeyModalBtn" class="btn btn-secondary btn-sm" title="Lihat Data ID Key, Jumlah Assignment & Enrollment Key"
+            <button type="button" id="openIdKeyModalBtn" class="btn btn-secondary btn-sm"
+              title="Lihat Data ID Key, Jumlah Assignment & Enrollment Key"
               style="height: 26px; padding: 0.15rem 0.55rem; font-size: 0.76rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-surface-hover); color: var(--text-main); font-weight: 600; transition: all 0.2s ease;">
               <i data-lucide="key" style="width: 12px; height: 12px; color: var(--accent-primary);"></i>
               <span>ID Key</span>
-              <span id="idKeyBadgeCount" style="background: var(--accent-primary); color: #ffffff; font-size: 0.65rem; padding: 0.05rem 0.35rem; border-radius: 10px; font-weight: 700;">0</span>
+              <span id="idKeyBadgeCount"
+                style="background: var(--accent-primary); color: #ffffff; font-size: 0.65rem; padding: 0.05rem 0.35rem; border-radius: 10px; font-weight: 700;">0</span>
             </button>
 
             <!-- TIPE AKSES ULTRA-MICRO PURE ICON TOGGLE -->
@@ -174,26 +176,39 @@
 
       <!-- INVENTORY SUMMARY PREVIEW ON SALES HUB -->
       <section class="card">
+        <!-- HEADER BAR: KIRI (JUDUL STOK READY) | KANAN SEJAJAR (KAT. UTAMA, SEMUA PRODUK, ICON LIHAT SEMUA) -->
         <div
-          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
-          <div class="card-title" style="margin-bottom: 0;">
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+          <div class="card-title" style="margin-bottom: 0; white-space: nowrap;">
             <i data-lucide="boxes" style="color: var(--status-available);"></i> Stok Ready (Tersedia)
           </div>
 
-          <!-- KATEGORI PRODUK FILTER & TOMBOL RINGKAS SEJAJAR -->
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <!-- Filter Berdasarkan Kategori Produk -->
-            <select id="salesHubProductFilter" class="form-select"
-              style="padding: 0.35rem 0.65rem; font-size: 0.82rem; height: 34px; width: auto; max-width: 170px; cursor: pointer; border-radius: var(--radius-sm);">
-              <option value="">Semua Kategori</option>
+          <!-- KANAN: 3 ELEMEN SEJAJAR KESAMPING (KAT UTAMA, SEMUA PRODUK, TOMBOL ICON LIHAT SEMUA) -->
+          <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+            <!-- 1. Filter Version -->
+            <select id="salesHubMainCategoryFilter" class="form-select" title="Filter Version"
+              style="padding: 0.3rem 0.6rem; font-size: 0.8rem; height: 32px; width: auto; max-width: 140px; cursor: pointer; border-radius: var(--radius-sm); font-weight: 600;">
+              <option value="">Version</option>
             </select>
 
-            <!-- Tombol Ringkas ke Inventory -->
-            <a class="btn btn-secondary btn-sm" data-view="inventory-view"
-              style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; white-space: nowrap; border-radius: var(--radius-sm);">
-              Lihat Semua <i data-lucide="arrow-right" style="width: 13px; height: 13px;"></i>
+            <!-- 2. Filter Semua Produk -->
+            <select id="salesHubProductFilter" class="form-select" title="Filter Produk"
+              style="padding: 0.3rem 0.6rem; font-size: 0.8rem; height: 32px; width: auto; max-width: 150px; cursor: pointer; border-radius: var(--radius-sm); font-weight: 600;">
+              <option value="">Semua Produk</option>
+            </select>
+
+            <!-- 3. Tombol Icon Lihat Semua Inventory -->
+            <a class="btn btn-secondary btn-sm" data-view="inventory-view" title="Lihat Semua Inventory Stok"
+              style="width: 32px; height: 32px; min-width: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); flex-shrink: 0;">
+              <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
             </a>
           </div>
+        </div>
+
+        <!-- SUB-KATEGORI CHIPS CONTAINER (BARIS BAWAH HEADER) -->
+        <div id="qaSubCategoryPillsContainer"
+          style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.85rem; padding-bottom: 0.45rem;">
+          <!-- Dynamic Sub-Category Pills populated by JS -->
         </div>
 
         <div class="table-responsive">
@@ -201,6 +216,7 @@
             <thead>
               <tr>
                 <th>Produk</th>
+                <th>Version</th>
                 <th>Email / Username</th>
                 <th>Password</th>
                 <th>Status</th>
@@ -224,12 +240,20 @@
 
         <!-- Filter & Search Controls -->
         <div class="filter-bar">
-          <div class="filter-group" style="display: flex; flex-direction: column; gap: 0.45rem; width: 100%; max-width: 100%;">
+          <div class="filter-group"
+            style="display: flex; flex-direction: column; gap: 0.45rem; width: 100%; max-width: 100%;">
             <input type="text" id="invSearchInput" class="form-input search-input" placeholder="Cari email / produk..."
               style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.8rem; border-radius: var(--radius-sm); width: 100%; max-width: 100%;">
 
             <!-- BARIS SEJAJAR 1 ROW: FILTER PRODUK, FILTER STATUS, & TOMBOL REFRESH -->
-            <div class="filter-controls-group" style="display: flex; align-items: center; gap: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
+            <div class="filter-controls-group"
+              style="display: flex; align-items: center; gap: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
+              <!-- Filter Version -->
+              <select id="invVersionFilter" class="form-select"
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;" title="Filter Version">
+                <option value="">Version</option>
+              </select>
+
               <!-- Filter Kategori Produk (Singkat: "Produk") -->
               <select id="invProductFilter" class="form-select"
                 style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;">
@@ -261,6 +285,7 @@
             <thead>
               <tr>
                 <th>Produk</th>
+                <th>Version</th>
                 <th>Email / Username</th>
                 <th>Password</th>
                 <th>Status</th>
@@ -439,21 +464,24 @@
             <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Stok Akun</h2>
             <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah, edit, dan hapus stok akun digital.</p>
           </div>
-          <div class="admin-acc-btn-group" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.45rem;">
+          <div class="admin-acc-btn-group"
+            style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.45rem;">
             <!-- BARIS ATAS: IKON ACTION (DOWNLOAD EXCEL & EXPIRED MASSAL) DI SEBELAH KIRI -->
             <div style="display: flex; align-items: center; gap: 0.4rem;">
               <button id="adminDownloadExcelBtn" class="btn btn-excel btn-sm" title="Download Excel Data Akun"
                 style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
                 <i data-lucide="file-spreadsheet" style="width: 17px; height: 17px;"></i>
               </button>
-              <button id="openBulkExpireModalBtn" class="btn btn-warning btn-sm" title="Expiredkan Stok Massal Berdasarkan Kategori"
+              <button id="openBulkExpireModalBtn" class="btn btn-warning btn-sm"
+                title="Expiredkan Stok Massal Berdasarkan Kategori"
                 style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);">
                 <i data-lucide="clock" style="width: 17px; height: 17px;"></i>
               </button>
             </div>
 
             <!-- BARIS DIBAWAH: SEJAJAR KESAMPING (UPLOAD MASSAL EXCEL DI KIRI, TAMBAH AKUN BARU DI KANAN) -->
-            <div class="admin-acc-action-btns" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+            <div class="admin-acc-action-btns"
+              style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
               <button id="openImportExcelModalBtn" class="btn btn-secondary btn-sm" title="Upload Stok Massal via Excel"
                 style="height: 36px; padding: 0 0.85rem; font-size: 0.82rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
                 <i data-lucide="upload-cloud" style="width: 15px; height: 15px;"></i> Upload Massal Excel
@@ -467,15 +495,26 @@
         </div>
 
         <div class="card">
-          <div class="filter-bar" style="margin-bottom: 1rem;">
-            <div class="filter-group">
+          <div class="filter-bar" style="margin-bottom: 0.85rem;">
+            <div class="filter-controls-group"
+              style="display: flex; align-items: center; gap: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
               <input type="text" id="adminAccSearch" class="form-input search-input"
-                placeholder="Cari email / username...">
-              <select id="adminAccProductFilter" class="form-select" style="width: auto;">
-                <option value="">Semua Produk</option>
+                placeholder="Cari email / user..."
+                style="flex: 1.5; min-width: 0; height: 34px; padding: 0.35rem 0.55rem; font-size: 0.78rem; border-radius: var(--radius-sm);">
+              
+              <select id="adminAccVersionFilter" class="form-select"
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;" title="Filter Version">
+                <option value="">Version</option>
               </select>
-              <select id="adminAccStatusFilter" class="form-select" style="width: auto;">
-                <option value="">Semua Status</option>
+
+              <select id="adminAccProductFilter" class="form-select"
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;" title="Filter Kategori Produk">
+                <option value="">Produk</option>
+              </select>
+
+              <select id="adminAccStatusFilter" class="form-select"
+                style="flex: 1; min-width: 0; height: 34px; padding: 0.35rem 0.45rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: pointer; text-overflow: ellipsis; white-space: nowrap;" title="Filter Status Akun">
+                <option value="">Status</option>
                 <option value="TERSEDIA">TERSEDIA</option>
                 <option value="TERKIRIM">TERKIRIM</option>
                 <option value="EXPIRED">EXPIRED</option>
@@ -488,6 +527,7 @@
               <thead>
                 <tr>
                   <th>Produk</th>
+                  <th>Version</th>
                   <th>Email / Username</th>
                   <th>Password</th>
                   <th>Status</th>
@@ -507,12 +547,17 @@
       <div id="admin-products" class="admin-tab-content" style="display: none;">
         <div class="filter-bar">
           <div>
-            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Kategori Produk
-            </h2>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah dan kelola kategori produk digital.</p>
+            <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700;">Kelola Kategori Produk</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Tambah dan kelola kategori produk digital & version visual.</p>
           </div>
-          <button id="openAddProductModalBtn" class="btn btn-primary"><i data-lucide="plus"></i> Tambah Kategori
-            Produk</button>
+          <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+            <button id="openManageVersionsModalBtn" class="btn btn-secondary" title="Kelola Daftar Version">
+              <i data-lucide="layers"></i> Kelola Version
+            </button>
+            <button id="openAddProductModalBtn" class="btn btn-primary">
+              <i data-lucide="plus"></i> Tambah Kategori Produk
+            </button>
+          </div>
         </div>
 
         <div class="card">
@@ -521,9 +566,10 @@
               <thead>
                 <tr>
                   <th>Nama Kategori Produk</th>
+                  <th>Version</th>
+                  <th>Status Produk</th>
                   <th>Stok Tersedia</th>
                   <th>Akun Terkirim</th>
-                  <th>Status Produk</th>
                   <th style="text-align: right;">Aksi</th>
                 </tr>
               </thead>
@@ -552,6 +598,7 @@
               <select id="tplTypeFilter" class="form-select" style="width: auto;">
                 <option value="">Semua Tipe Template</option>
                 <option value="GLOBAL">Template Global</option>
+                <option value="VERSION">Template Version</option>
                 <option value="PRODUCT">Template Kategori Produk</option>
               </select>
             </div>
@@ -834,12 +881,27 @@
             required>
         </div>
 
+        <!-- Version -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Version <span style="color:var(--status-expired)">*</span></label>
+          <select id="prodFormVersionSelect" class="form-select" required>
+            <!-- Dynamic versions populated by app.js -->
+          </select>
+          <input type="text" id="prodFormVersionCustom" class="form-input" placeholder="Tulis nama version baru (misal: Beta View)..." style="display: none; margin-top: 0.4rem;">
+        </div>
+
+        <!-- Sub Menu / Sub Kategori -->
+        <div class="form-group" style="margin-bottom: 0.85rem;">
+          <label class="form-label">Sub Menu / Sub Kategori <span style="font-size:0.75rem; color:var(--text-muted);">(Opsional)</span></label>
+          <input type="text" id="prodFormSubCategory" class="form-input" placeholder="e.g. Shared Profile 4K, Link Akses, Private Account">
+        </div>
+
         <!-- Status Produk -->
         <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Status Produk</label>
           <select id="prodFormStatus" class="form-select">
-            <option value="Aktif" selected>Aktif</option>
-            <option value="Tidak Aktif">Tidak Aktif</option>
+            <option value="Aktif" selected>Active</option>
+            <option value="Tidak Aktif">Inactive</option>
           </select>
         </div>
 
@@ -898,7 +960,7 @@
 
       <!-- BAR PENGATURAN BAHASA & FORMAT TEBAL TEKS (SINGLE-ROW COMPACT TOOLBAR) -->
       <div class="msg-format-toolbar">
-        
+
         <!-- Pilihan Bahasa -->
         <div class="msg-toolbar-item">
           <span class="msg-format-label"><i data-lucide="languages"></i> Bahasa:</span>
@@ -916,7 +978,8 @@
         <div class="msg-toolbar-item">
           <span class="msg-format-label"><i data-lucide="bold"></i> Format:</span>
           <div class="msg-segmented-group">
-            <button type="button" id="msgBoldUniBtn" class="msg-segmented-btn active" title="Format Tebal Universal (Bisa di Shopee, Tokopedia, IG, FB, Telegram, dll)">
+            <button type="button" id="msgBoldUniBtn" class="msg-segmented-btn active"
+              title="Format Tebal Universal (Bisa di Shopee, Tokopedia, IG, FB, Telegram, dll)">
               🌐 Universal
             </button>
             <button type="button" id="msgBoldWaBtn" class="msg-segmented-btn" title="Format Tebal WhatsApp (*teks*)">
@@ -965,8 +1028,13 @@
             <label class="form-label">Tipe Template</label>
             <select id="tplFormType" class="form-select">
               <option value="GLOBAL">Global (Semua Produk)</option>
+              <option value="VERSION">Template Version</option>
               <option value="PRODUCT">Kategori Produk Spesifik</option>
             </select>
+          </div>
+          <div class="form-group" id="tplFormVersionGroup" style="display: none;">
+            <label class="form-label">Pilih Version</label>
+            <select id="tplFormVersion" class="form-select"></select>
           </div>
           <div class="form-group" id="tplFormProductGroup" style="display: none;">
             <label class="form-label">Pilih Produk</label>
@@ -1017,7 +1085,8 @@
         <div class="msg-toolbar-item">
           <span class="msg-format-label"><i data-lucide="languages"></i> Bahasa:</span>
           <div class="msg-segmented-group">
-            <button type="button" id="prevLangIdBtn" class="msg-segmented-btn active" title="Bahasa Indonesia (Default)">
+            <button type="button" id="prevLangIdBtn" class="msg-segmented-btn active"
+              title="Bahasa Indonesia (Default)">
               🇮🇩 ID
             </button>
             <button type="button" id="prevLangEnBtn" class="msg-segmented-btn" title="English Language">
@@ -1086,21 +1155,25 @@
         </h3>
         <button class="modal-close-btn" data-close="duplicateWarningModal">&times;</button>
       </div>
-      
-      <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1rem; color: var(--text-main);">
-        <div style="font-weight: 700; color: var(--status-expired); font-size: 0.95rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+
+      <div
+        style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 0.9rem; margin-bottom: 1rem; color: var(--text-main);">
+        <div
+          style="font-weight: 700; color: var(--status-expired); font-size: 0.95rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
           <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i> Akun Tidak Tersimpan & Tidak Terkirim!
         </div>
         <p style="font-size: 0.85rem; line-height: 1.4; color: var(--text-main); margin-bottom: 0.6rem;">
           Ditemukan data yang <strong>DUPLIKAT (SUDAH ADA)</strong> di dalam daftar akun database:
         </p>
-        <div id="duplicateWarningDetails" style="font-size: 0.83rem; background: var(--bg-surface); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-weight: 600; color: var(--status-expired); word-break: break-all;">
+        <div id="duplicateWarningDetails"
+          style="font-size: 0.83rem; background: var(--bg-surface); padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-weight: 600; color: var(--status-expired); word-break: break-all;">
           <!-- Detail item yang duplikat -->
         </div>
       </div>
 
       <p style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 1rem;">
-        Demi keamanan inventaris, akun dengan Email atau Password yang sama <strong>TIDAK AKAN TERSIMPAN, TERKIRIM, MAUPUN TERSALIN</strong>. Silakan periksa kembali data yang Anda masukkan.
+        Demi keamanan inventaris, akun dengan Email atau Password yang sama <strong>TIDAK AKAN TERSIMPAN, TERKIRIM,
+          MAUPUN TERSALIN</strong>. Silakan periksa kembali data yang Anda masukkan.
       </p>
 
       <div class="modal-footer">
@@ -1122,9 +1195,11 @@
       </div>
 
       <!-- FILTER & TOMBOL TAMBAH DENGAN SPACE EFISIEN -->
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 170px;">
-          <select id="idKeyCategoryFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1;">
+          <select id="idKeyCategoryFilter" class="form-select"
+            style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1;">
             <option value="">Semua Kategori</option>
           </select>
           <button type="button" id="deleteIdKeyCategoryBtn" class="btn btn-secondary btn-sm" title="Hapus Kategori"
@@ -1132,14 +1207,16 @@
             <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
           </button>
         </div>
-        <select id="idKeyStatusFilter" class="form-select" style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); width: 130px;">
+        <select id="idKeyStatusFilter" class="form-select"
+          style="height: 34px; padding: 0.35rem 0.65rem; font-size: 0.82rem; border-radius: var(--radius-sm); width: 130px;">
           <option value="">Semua Status</option>
           <option value="AKTIF">AKTIF</option>
           <option value="EXPIRED">EXPIRED</option>
         </select>
         <input type="text" id="idKeySearchInput" class="form-input" placeholder="Cari Enrollment Key / Class ID..."
           style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.82rem; border-radius: var(--radius-sm); flex: 1; min-width: 160px;">
-        <button type="button" id="openAddIdKeyModalBtn" class="btn btn-primary btn-sm" style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.8rem; white-space: nowrap;">
+        <button type="button" id="openAddIdKeyModalBtn" class="btn btn-primary btn-sm"
+          style="height: 34px; padding: 0.35rem 0.75rem; font-size: 0.8rem; white-space: nowrap;">
           <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Tambah Enrollment Key
         </button>
       </div>
@@ -1164,9 +1241,11 @@
         </table>
       </div>
 
-      <div class="modal-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+      <div class="modal-footer"
+        style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <span style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.3rem;">
-          <i data-lucide="info" style="width: 13px; height: 13px; color: var(--accent-primary);"></i> Klik ikon 📋 pada Enrollment Key untuk menyalin. Status otomatis EXPIRED jika melewati batas durasi.
+          <i data-lucide="info" style="width: 13px; height: 13px; color: var(--accent-primary);"></i> Klik ikon 📋 pada
+          Enrollment Key untuk menyalin. Status otomatis EXPIRED jika melewati batas durasi.
         </span>
         <button type="button" class="btn btn-secondary btn-sm" data-close="idKeyModal">Tutup</button>
       </div>
@@ -1188,7 +1267,8 @@
           <select id="idKeyFormCategorySelect" class="form-select" required>
             <!-- Dynamic Category options -->
           </select>
-          <input type="text" id="idKeyFormCategoryCustom" class="form-input" placeholder="Tulis nama kategori baru..." style="display: none; margin-top: 0.4rem;">
+          <input type="text" id="idKeyFormCategoryCustom" class="form-input" placeholder="Tulis nama kategori baru..."
+            style="display: none; margin-top: 0.4rem;">
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
@@ -1197,25 +1277,33 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
-          <label class="form-label">Class ID <span style="font-size:0.72rem; color:var(--text-muted);">(Opsional)</span></label>
+          <label class="form-label">Class ID <span
+              style="font-size:0.72rem; color:var(--text-muted);">(Opsional)</span></label>
           <input type="text" id="idKeyFormClassId" class="form-input" placeholder="e.g. 45829102">
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Assignment <span style="color:var(--status-expired)">*</span></label>
-          <input type="number" id="idKeyFormAssignment" class="form-input" placeholder="Masukkan angka (misal: 1)" min="1" required>
-          <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Otomatis ditampilkan sebagai "X Assignment" di tabel.</span>
+          <input type="number" id="idKeyFormAssignment" class="form-input" placeholder="Masukkan angka (misal: 1)"
+            min="1" required>
+          <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Otomatis ditampilkan sebagai "X
+            Assignment" di tabel.</span>
         </div>
 
         <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Batas Durasi (Hari) <span style="color:var(--status-expired)">*</span></label>
-          <input type="number" id="idKeyFormDuration" class="form-input" placeholder="Masukkan angka harian (misal: 2)" min="1" required>
-          <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Durasi otomatis dihitung harian (contoh: isi 2 = 2 Hari).</span>
+          <input type="number" id="idKeyFormDuration" class="form-input" placeholder="Masukkan angka harian (misal: 2)"
+            min="1" required>
+          <span style="font-size:0.73rem; color:var(--text-muted); margin-top:0.2rem;">Durasi otomatis dihitung harian
+            (contoh: isi 2 = 2 Hari).</span>
         </div>
 
-        <div id="idKeyResetDurationGroup" class="form-group" style="margin-bottom: 0.85rem; display: none; background: var(--bg-surface-hover); padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-          <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 500;">
-            <input type="checkbox" id="idKeyFormResetCreated" style="accent-color: var(--accent-primary); width: 15px; height: 15px;">
+        <div id="idKeyResetDurationGroup" class="form-group"
+          style="margin-bottom: 0.85rem; display: none; background: var(--bg-surface-hover); padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <label
+            style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 500;">
+            <input type="checkbox" id="idKeyFormResetCreated"
+              style="accent-color: var(--accent-primary); width: 15px; height: 15px;">
             <span>Reset Durasi Berjalan (Mulai dari awal hari ini)</span>
           </label>
         </div>
@@ -1239,18 +1327,25 @@
       </div>
 
       <!-- Banner Info Aturan Import -->
-      <div style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-primary); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.82rem;">
-        <div style="font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
-          <i data-lucide="info" style="width: 15px; height: 15px; color: var(--accent-primary);"></i> Aturan & Format Excel Upload Stok (Minimalis / Wajib Only):
+      <div
+        style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); border-left: 4px solid var(--accent-primary); padding: 0.75rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.82rem;">
+        <div
+          style="font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+          <i data-lucide="info" style="width: 15px; height: 15px; color: var(--accent-primary);"></i> Aturan & Format
+          Excel Upload Stok (Minimalis / Wajib Only):
         </div>
         <ul style="margin: 0; padding-left: 1.2rem; color: var(--text-muted); line-height: 1.45;">
           <li>Format file yang didukung: <strong>.xlsx, .xls, .csv</strong></li>
-          <li><strong>Kolom Wajib Isi:</strong> <code>Email / Username</code> & <code>Password</code> (untuk Akun) ATAU <code>Link Akses</code> (untuk Link).</li>
-          <li><strong>Otomatisasi:</strong> Kategori Produk & Durasi yang kosong akan mengikuti <em>Default Kategori Produk</em> & <em>Default Durasi</em> di bawah.</li>
+          <li><strong>Kolom Wajib Isi:</strong> <code>Email / Username</code> & <code>Password</code> (untuk Akun) ATAU
+            <code>Link Akses</code> (untuk Link).</li>
+          <li><strong>Otomatisasi:</strong> Kategori Produk & Durasi yang kosong akan mengikuti <em>Default Kategori
+              Produk</em> & <em>Default Durasi</em> di bawah.</li>
         </ul>
         <div style="margin-top: 0.65rem; text-align: right;">
-          <button type="button" id="downloadExcelTemplateBtn" class="btn btn-secondary btn-xs" style="font-size: 0.76rem; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid var(--border-color); font-weight: 600; cursor: pointer;">
-            <i data-lucide="download" style="width: 12px; height: 12px; color: var(--accent-primary);"></i> Unduh Format Template Excel (.xlsx)
+          <button type="button" id="downloadExcelTemplateBtn" class="btn btn-secondary btn-xs"
+            style="font-size: 0.76rem; padding: 0.25rem 0.65rem; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid var(--border-color); font-weight: 600; cursor: pointer;">
+            <i data-lucide="download" style="width: 12px; height: 12px; color: var(--accent-primary);"></i> Unduh Format
+            Template Excel (.xlsx)
           </button>
         </div>
       </div>
@@ -1258,38 +1353,45 @@
       <form id="importExcelForm">
         <div class="form-group" style="margin-bottom: 0.85rem;">
           <label class="form-label">Pilih File Excel / CSV <span style="color:var(--status-expired)">*</span></label>
-          <input type="file" id="excelFileInput" class="form-input" accept=".xlsx, .xls, .csv" required style="padding: 0.45rem;">
+          <input type="file" id="excelFileInput" class="form-input" accept=".xlsx, .xls, .csv" required
+            style="padding: 0.45rem;">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
           <div class="form-group">
             <label class="form-label">Default Kategori Produk</label>
             <select id="importDefaultProduct" class="form-select"></select>
-            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Produk' di Excel tidak diisi.</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Produk' di Excel tidak
+              diisi.</span>
           </div>
 
           <div class="form-group">
             <label class="form-label">Default Durasi Akun</label>
             <div style="display: flex; gap: 0.4rem;">
-              <input type="number" id="importDefaultDuration" class="form-input" value="30" min="1" style="width: 70px;" required>
+              <input type="number" id="importDefaultDuration" class="form-input" value="30" min="1" style="width: 70px;"
+                required>
               <select id="importDefaultUnit" class="form-select" style="flex: 1;">
                 <option value="Hari" selected>Hari</option>
                 <option value="Minggu">Minggu</option>
                 <option value="Bulan">Bulan</option>
               </select>
             </div>
-            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Durasi' di Excel tidak diisi.</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Dipakai jika kolom 'Durasi' di Excel tidak
+              diisi.</span>
           </div>
         </div>
 
         <!-- Preview Table Box -->
         <div id="excelPreviewWrapper" style="display: none; margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.4rem;">
-            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">Pratinjau Data File (<span id="excelPreviewCount">0</span> baris)</span>
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.4rem;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">Pratinjau Data File (<span
+                id="excelPreviewCount">0</span> baris)</span>
             <div id="excelPreviewBadges" style="display: flex; gap: 0.4rem; font-size: 0.72rem; flex-wrap: wrap;"></div>
           </div>
 
-          <div class="table-responsive" style="max-height: 210px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <div class="table-responsive"
+            style="max-height: 210px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
             <table class="data-table" style="font-size: 0.78rem;">
               <thead>
                 <tr>
@@ -1328,22 +1430,30 @@
       </div>
 
       <!-- Ringkasan Stat Cards -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; text-align: center;">
-        <div style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+      <div
+        style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem; text-align: center;">
+        <div
+          style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
           <div style="font-size: 1.4rem; font-weight: 800; color: var(--status-available);" id="resAddedCount">0</div>
-          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">AKUN BARU</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">AKUN
+            BARU</div>
         </div>
-        <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+        <div
+          style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
           <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-primary);" id="resUpdatedCount">0</div>
-          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">EXPIRED &rarr; TERSEDIA</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+            EXPIRED &rarr; TERSEDIA</div>
         </div>
-        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
+        <div
+          style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 0.65rem 0.4rem; border-radius: var(--radius-sm);">
           <div style="font-size: 1.4rem; font-weight: 800; color: var(--status-expired);" id="resRejectedCount">0</div>
-          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">DITOLAK</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+            DITOLAK</div>
         </div>
       </div>
 
-      <div class="table-responsive" style="max-height: 230px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+      <div class="table-responsive"
+        style="max-height: 230px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 1rem;">
         <table class="data-table" style="font-size: 0.78rem;">
           <thead>
             <tr>
@@ -1376,11 +1486,15 @@
       </div>
 
       <!-- Banner Penjelasan Fitur -->
-      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.83rem; line-height: 1.45; color: var(--text-main);">
-        <div style="font-weight: 700; color: var(--status-warning); font-size: 0.9rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+      <div
+        style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.83rem; line-height: 1.45; color: var(--text-main);">
+        <div
+          style="font-weight: 700; color: var(--status-warning); font-size: 0.9rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
           <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Informasi Fitur Expired Massal:
         </div>
-        Tindakan ini akan meng-<strong>EXPIRED</strong>-kan akun pada kategori yang dipilih. Setelah berstatus <strong>EXPIRED</strong>, Anda dapat menambahkan kembali akun dengan Email / Link yang sama tanpa terkena penolakan duplikat.
+        Tindakan ini akan meng-<strong>EXPIRED</strong>-kan akun pada kategori yang dipilih. Setelah berstatus
+        <strong>EXPIRED</strong>, Anda dapat menambahkan kembali akun dengan Email / Link yang sama tanpa terkena
+        penolakan duplikat.
       </div>
 
       <form id="bulkExpireForm">
@@ -1400,25 +1514,61 @@
           </select>
         </div>
 
-        <div id="bulkExpirePreviewBox" style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.75rem 0.9rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
-          Jumlah akun yang akan di-expiredkan: <strong id="bulkExpireTargetCount" style="color: var(--status-warning); font-size: 1.05rem;">0</strong> akun
+        <div id="bulkExpirePreviewBox"
+          style="background: var(--bg-surface-hover); border: 1px solid var(--border-color); padding: 0.75rem 0.9rem; border-radius: var(--radius-sm); margin-bottom: 1rem; font-size: 0.85rem; text-align: center;">
+          Jumlah akun yang akan di-expiredkan: <strong id="bulkExpireTargetCount"
+            style="color: var(--status-warning); font-size: 1.05rem;">0</strong> akun
         </div>
 
         <!-- VALIDASI CENTANG SAFETY CHECKBOX -->
-        <div class="form-group" style="margin-bottom: 1.25rem; background: var(--bg-surface-hover); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-          <label style="display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600; margin-bottom: 0;">
-            <input type="checkbox" id="bulkExpireConfirmCheckbox" style="accent-color: var(--status-warning); width: 16px; height: 16px; cursor: pointer;" required>
+        <div class="form-group"
+          style="margin-bottom: 1.25rem; background: var(--bg-surface-hover); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <label
+            style="display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; cursor: pointer; color: var(--text-main); font-weight: 600; margin-bottom: 0;">
+            <input type="checkbox" id="bulkExpireConfirmCheckbox"
+              style="accent-color: var(--status-warning); width: 16px; height: 16px; cursor: pointer;" required>
             <span>Saya yakin ingin meng-expiredkan seluruh akun pada kategori yang dipilih</span>
           </label>
         </div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-close="bulkExpireModal">Batal</button>
-          <button type="submit" id="confirmBulkExpireBtn" class="btn btn-warning" disabled style="opacity: 0.6; cursor: not-allowed;">
+          <button type="submit" id="confirmBulkExpireBtn" class="btn btn-warning" disabled
+            style="opacity: 0.6; cursor: not-allowed;">
             <i data-lucide="clock"></i> Ya, Expiredkan Massal
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MANAGE VERSIONS MODAL -->
+  <div id="manageVersionsModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="layers"></i> Kelola Version</h3>
+        <button class="modal-close-btn" data-close="manageVersionsModal">&times;</button>
+      </div>
+
+      <form id="addVersionForm" style="margin-bottom: 1rem;">
+        <div style="display: flex; gap: 0.45rem;">
+          <input type="text" id="newVersionInput" class="form-input" placeholder="Nama Version Baru (e.g. V2 Pro)..." required style="flex: 1;">
+          <button type="submit" class="btn btn-primary btn-sm" style="white-space: nowrap;">
+            <i data-lucide="plus"></i> Tambah
+          </button>
+        </div>
+      </form>
+
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem;">
+        Daftar Version Tersimpan:
+      </div>
+      <div id="versionsListContainer" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.4rem;">
+        <!-- Dynamic list of versions with delete buttons -->
+      </div>
+
+      <div class="modal-footer" style="margin-top: 1rem;">
+        <button type="button" class="btn btn-secondary btn-sm" data-close="manageVersionsModal">Tutup</button>
+      </div>
     </div>
   </div>
 

@@ -28,9 +28,15 @@ class AccExpressApp {
   }
 
   refreshIcons() {
-    if (this._iconFrame) return;
+    if (this._iconFrame) cancelAnimationFrame(this._iconFrame);
     this._iconFrame = requestAnimationFrame(() => {
-      if (window.lucide) window.lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        try {
+          window.lucide.createIcons();
+        } catch (e) {
+          console.warn('[Lucide Icons Warning]:', e);
+        }
+      }
       this._iconFrame = null;
     });
   }
@@ -136,7 +142,7 @@ class AccExpressApp {
       } else {
         themeIcon.setAttribute('data-lucide', 'sun');
       }
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
       this.showToast(`Mode ${isDark ? 'Gelap' : 'Terang'} diaktifkan.`, 'info');
     });
   }
@@ -173,7 +179,7 @@ class AccExpressApp {
     `;
 
     container.appendChild(toast);
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     setTimeout(() => {
       toast.style.opacity = '0';
@@ -191,7 +197,7 @@ class AccExpressApp {
     const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // Deteksi perangkat mobile (HP / Tablet / Touchscreen)
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0 && window.innerWidth <= 1024);
 
     // Di HP/Mobile, WAJIB menggunakan Plain Text murni saja (tanpa MIME text/html Blob).
@@ -375,6 +381,14 @@ class AccExpressApp {
       });
     });
 
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          this.closeModal(overlay.id);
+        }
+      });
+    });
+
     document.querySelectorAll('.toggle-password-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const inputId = e.currentTarget.getAttribute('data-input');
@@ -385,7 +399,7 @@ class AccExpressApp {
           const icon = e.currentTarget.querySelector('i');
           if (icon) {
             icon.setAttribute('data-lucide', type === 'password' ? 'eye' : 'eye-off');
-            if (window.lucide) window.lucide.createIcons();
+            this.refreshIcons();
           }
         }
       });
@@ -461,14 +475,33 @@ class AccExpressApp {
       document.getElementById('prevLangIdBtn')?.classList.remove('active');
     });
 
-    document.getElementById('salesHubProductFilter')?.addEventListener('change', () => {
+    document.getElementById('salesHubMainCategoryFilter')?.addEventListener('change', () => {
+      this.currentSelectedSubCategory = '';
+      this.populateProductDropdowns();
       this.renderSalesHubInventory();
+    });
+
+    document.getElementById('salesHubProductFilter')?.addEventListener('change', () => {
+      this.currentSelectedSubCategory = '';
+      this.renderSalesHubInventory();
+    });
+
+    document.getElementById('invVersionFilter')?.addEventListener('change', () => {
+      this.populateProductDropdowns();
+      this.renderInventoryTable();
+    });
+
+    document.getElementById('adminAccVersionFilter')?.addEventListener('change', () => {
+      this.populateProductDropdowns();
+      this.renderAdminAccounts();
     });
 
     document.getElementById('tplFormType')?.addEventListener('change', (e) => {
       const type = e.target.value;
-      const grp = document.getElementById('tplFormProductGroup');
-      if (grp) grp.style.display = type === 'PRODUCT' ? 'block' : 'none';
+      const prodGrp = document.getElementById('tplFormProductGroup');
+      const verGrp = document.getElementById('tplFormVersionGroup');
+      if (prodGrp) prodGrp.style.display = type === 'PRODUCT' ? 'block' : 'none';
+      if (verGrp) verGrp.style.display = type === 'VERSION' ? 'block' : 'none';
     });
 
     document.getElementById('tplTypeFilter')?.addEventListener('change', () => {
@@ -601,7 +634,7 @@ class AccExpressApp {
       if (resetGroup) resetGroup.style.display = 'none';
       const titleEl = document.getElementById('idKeyModalFormTitle');
       if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Tambah Enrollment Key';
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
       this.openModal('addIdKeyFormModal');
     });
 
@@ -647,11 +680,11 @@ class AccExpressApp {
       let catToDelete = categoryFilterSelect?.value;
 
       if (!catToDelete) {
-        const promptMsg = `Masukkan / pilih nama kategori yang ingin dihapus:\n\nDaftar Kategori:\n` + 
+        const promptMsg = `Masukkan / pilih nama kategori yang ingin dihapus:\n\nDaftar Kategori:\n` +
           uniqueCategories.map((c, i) => `${i + 1}. ${c}`).join('\n');
         const inputCat = prompt(promptMsg, uniqueCategories[0]);
         if (!inputCat) return;
-        
+
         const matched = uniqueCategories.find(c => c.toLowerCase() === inputCat.trim().toLowerCase());
         if (!matched) {
           this.showToast(`Kategori "${inputCat}" tidak ditemukan.`, 'error');
@@ -703,7 +736,7 @@ class AccExpressApp {
 
       const tplType = document.getElementById('tplFormType')?.value || 'GLOBAL';
       const selectedProdId = document.getElementById('tplFormProductId')?.value;
-      
+
       let prod = null;
       if (tplType === 'PRODUCT' && selectedProdId) {
         prod = db.getProductById(selectedProdId);
@@ -778,9 +811,8 @@ class AccExpressApp {
         const prod = db.getProductById(id);
         await db.deleteProduct(id);
         await db.addActivityLog(this.currentAdmin, 'Produk Dihapus', 'produk', `Hapus produk ${prod ? prod.name : id}`, id);
-        this.showToast('Data produk berhasil dihapus.', 'info');
-        this.renderAdminProducts();
-        this.populateProductDropdowns();
+        this.showToast('✓ Kategori produk berhasil dihapus. Semua akun terkait dialihkan ke status EXPIRED.', 'info');
+        this.renderAll();
       } else if (type === 'template') {
         await db.deleteTemplate(id);
         await db.addActivityLog(this.currentAdmin, 'Template Dihapus', 'template', `Hapus template ID ${id}`, id);
@@ -950,17 +982,60 @@ class AccExpressApp {
     document.getElementById('openAddProductModalBtn')?.addEventListener('click', () => {
       document.getElementById('productForm').reset();
       document.getElementById('prodFormId').value = '';
+      this.populateVersionDropdowns();
+      const subCatInput = document.getElementById('prodFormSubCategory');
+      if (subCatInput) subCatInput.value = '';
       document.getElementById('productModalTitle').innerText = 'Tambah Kategori Produk';
       this.openModal('productModal');
     });
+
+    document.getElementById('openManageVersionsModalBtn')?.addEventListener('click', () => {
+      this.renderVersionsList();
+      document.getElementById('addVersionForm')?.reset();
+      this.openModal('manageVersionsModal');
+    });
+
+    document.getElementById('addVersionForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('newVersionInput');
+      const val = input ? input.value.trim() : '';
+      if (val) {
+        await db.addVersion(val);
+        db.addActivityLog(this.currentAdmin || 'admin', 'Version Ditambahkan', 'produk', `Tambah Version: ${val}`);
+        this.showToast(`✓ Version "${val}" berhasil ditambahkan.`, 'success');
+        input.value = '';
+        this.renderVersionsList();
+        this.populateVersionDropdowns(val);
+        this.renderAdminProducts();
+        this.renderSubCategoryContainer();
+      }
+    });
+
+    document.getElementById('prodFormVersionSelect')?.addEventListener('change', (e) => {
+      const customInput = document.getElementById('prodFormVersionCustom');
+      if (e.target.value === '__NEW_VERSION__') {
+        if (customInput) {
+          customInput.style.display = 'block';
+          customInput.focus();
+        }
+      } else {
+        if (customInput) customInput.style.display = 'none';
+      }
+    });
+
+
 
     document.getElementById('openAddTemplateModalBtn')?.addEventListener('click', () => {
       document.getElementById('templateForm').reset();
       document.getElementById('tplFormId').value = '';
       document.getElementById('tplFormType').value = 'GLOBAL';
-      document.getElementById('tplFormProductGroup').style.display = 'none';
+      const prodGrp = document.getElementById('tplFormProductGroup');
+      const verGrp = document.getElementById('tplFormVersionGroup');
+      if (prodGrp) prodGrp.style.display = 'none';
+      if (verGrp) verGrp.style.display = 'none';
       document.getElementById('templateModalTitle').innerText = 'Tambah Template Pesan';
       this.populateProductDropdowns();
+      this.populateVersionDropdowns();
       this.openModal('templateModal');
     });
   }
@@ -1030,7 +1105,7 @@ class AccExpressApp {
       if (publicView) publicView.style.display = 'block';
     }
 
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
   }
 
   showAdminPanel(targetTab) {
@@ -1124,23 +1199,73 @@ class AccExpressApp {
       const currentVal = qaDropdown.value;
       qaDropdown.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>' +
         activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      if (currentVal) qaDropdown.value = currentVal;
+      if (currentVal && activeProducts.some(p => p.id === currentVal)) {
+        qaDropdown.value = currentVal;
+      }
+    }
+
+    const shMainCatFilter = document.getElementById('salesHubMainCategoryFilter');
+    let selectedMainCat = '';
+    if (shMainCatFilter) {
+      const currentVal = shMainCatFilter.value || '';
+      const mainCategories = db.getMainCategories();
+      const currentOptCount = shMainCatFilter.options.length;
+      if (currentOptCount <= 1 || (currentOptCount - 1) !== mainCategories.length) {
+        shMainCatFilter.innerHTML = '<option value="">Version</option>' +
+          mainCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+      if (currentVal && mainCategories.includes(currentVal)) {
+        shMainCatFilter.value = currentVal;
+      }
+      selectedMainCat = shMainCatFilter.value || '';
     }
 
     const shFilter = document.getElementById('salesHubProductFilter');
     if (shFilter) {
+      let prodsForSh = activeProducts;
+      if (selectedMainCat) {
+        prodsForSh = activeProducts.filter(p => db.getMainCategoryForProduct(p) === selectedMainCat);
+      }
       const currentVal = shFilter.value;
-      shFilter.innerHTML = '<option value="">Semua Kategori</option>' +
-        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      shFilter.value = currentVal;
+      shFilter.innerHTML = '<option value="">Semua Produk</option>' +
+        prodsForSh.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (currentVal && prodsForSh.some(p => p.id === currentVal)) {
+        shFilter.value = currentVal;
+      } else {
+        shFilter.value = '';
+      }
+    }
+
+    const invVerFilter = document.getElementById('invVersionFilter');
+    let selectedInvVersion = '';
+    if (invVerFilter) {
+      const currentVal = invVerFilter.value || '';
+      const mainCategories = db.getMainCategories();
+      const currentOptCount = invVerFilter.options.length;
+      if (currentOptCount <= 1 || (currentOptCount - 1) !== mainCategories.length) {
+        invVerFilter.innerHTML = '<option value="">Version</option>' +
+          mainCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+      if (currentVal && mainCategories.includes(currentVal)) {
+        invVerFilter.value = currentVal;
+      }
+      selectedInvVersion = invVerFilter.value || '';
     }
 
     const invFilter = document.getElementById('invProductFilter');
     if (invFilter) {
+      let prodsForInv = activeProducts;
+      if (selectedInvVersion) {
+        prodsForInv = activeProducts.filter(p => db.getMainCategoryForProduct(p) === selectedInvVersion);
+      }
       const currentVal = invFilter.value;
       invFilter.innerHTML = '<option value="">Produk</option>' +
-        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      invFilter.value = currentVal;
+        prodsForInv.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (currentVal && prodsForInv.some(p => p.id === currentVal)) {
+        invFilter.value = currentVal;
+      } else {
+        invFilter.value = '';
+      }
     }
 
     const accProdSelect = document.getElementById('accFormProduct');
@@ -1152,15 +1277,39 @@ class AccExpressApp {
       }
       prodsForAcc = sortProds(prodsForAcc);
       accProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Produk --</option>' +
-        prodsForAcc.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
+        prodsForAcc.map(p => `<option value="${p.id}">${p.name}${(p.status === 'Tidak Aktif' || p.status === 'Inactive') ? ' (Inactive)' : ''}</option>`).join('');
+    }
+
+    const adminAccVerFilter = document.getElementById('adminAccVersionFilter');
+    let selectedAdminAccVersion = '';
+    if (adminAccVerFilter) {
+      const currentVal = adminAccVerFilter.value || '';
+      const mainCategories = db.getMainCategories();
+      const currentOptCount = adminAccVerFilter.options.length;
+      if (currentOptCount <= 1 || (currentOptCount - 1) !== mainCategories.length) {
+        adminAccVerFilter.innerHTML = '<option value="">Version</option>' +
+          mainCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+      if (currentVal && mainCategories.includes(currentVal)) {
+        adminAccVerFilter.value = currentVal;
+      }
+      selectedAdminAccVersion = adminAccVerFilter.value || '';
     }
 
     const adminAccFilter = document.getElementById('adminAccProductFilter');
     if (adminAccFilter) {
+      let prodsForAdminAcc = activeProducts;
+      if (selectedAdminAccVersion) {
+        prodsForAdminAcc = activeProducts.filter(p => db.getMainCategoryForProduct(p) === selectedAdminAccVersion);
+      }
       const currentVal = adminAccFilter.value;
-      adminAccFilter.innerHTML = '<option value="">Semua Produk</option>' +
-        activeProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-      adminAccFilter.value = currentVal;
+      adminAccFilter.innerHTML = '<option value="">Produk</option>' +
+        prodsForAdminAcc.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (currentVal && prodsForAdminAcc.some(p => p.id === currentVal)) {
+        adminAccFilter.value = currentVal;
+      } else {
+        adminAccFilter.value = '';
+      }
     }
 
     const tplProdSelect = document.getElementById('tplFormProductId');
@@ -1171,7 +1320,7 @@ class AccExpressApp {
         if (inactiveProd) prodsForTpl.push(inactiveProd);
       }
       tplProdSelect.innerHTML = '<option value="" disabled selected>-- Pilih Produk Spesifik --</option>' +
-        prodsForTpl.map(p => `<option value="${p.id}">${p.name}${p.status === 'Tidak Aktif' ? ' (Tidak Aktif)' : ''}</option>`).join('');
+        prodsForTpl.map(p => `<option value="${p.id}">${p.name}${(p.status === 'Tidak Aktif' || p.status === 'Inactive') ? ' (Inactive)' : ''}</option>`).join('');
     }
 
     const importProdSelect = document.getElementById('importDefaultProduct');
@@ -1303,27 +1452,113 @@ class AccExpressApp {
     this.renderSalesHubInventory();
   }
 
+  renderSubCategoryContainer() {
+    this.renderVersionPills();
+  }
+
+  renderSubCategoryPills() {
+    this.renderVersionPills();
+  }
+
+  renderVersionPills() {
+    const container = document.getElementById('qaSubCategoryPillsContainer');
+    if (!container) return;
+
+    const mainCatFilter = document.getElementById('salesHubMainCategoryFilter')?.value || '';
+    const prodFilter = document.getElementById('salesHubProductFilter')?.value || '';
+
+    let availableAccounts = db.getAccounts().filter(a => a.status === 'TERSEDIA');
+    const products = db.getProducts();
+
+    if (prodFilter) {
+      availableAccounts = availableAccounts.filter(a => a.product_id === prodFilter);
+    }
+
+    const versionCounts = {};
+
+    availableAccounts.forEach(acc => {
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
+      if (prod) {
+        const ver = db.getMainCategoryForProduct(prod) || 'OLD VIEW';
+        versionCounts[ver] = (versionCounts[ver] || 0) + 1;
+      }
+    });
+
+    const activeVersion = this.currentSelectedSubCategory || mainCatFilter || '';
+    const sortedVersions = Object.keys(versionCounts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    if (sortedVersions.length === 0) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'flex';
+    let html = '';
+    sortedVersions.forEach(ver => {
+      const isActive = activeVersion === ver;
+      const count = versionCounts[ver];
+      html += `
+        <button type="button" class="subcat-pill ${isActive ? 'active' : ''}" data-subcat="${ver}"
+          style="height: 30px; padding: 0.2rem 0.55rem; font-size: 0.74rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${isActive ? 'var(--accent-primary)' : 'var(--bg-surface-hover)'}; color: ${isActive ? '#ffffff' : 'var(--text-main)'}; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; transition: all 0.2s ease;">
+          ${ver} <span class="badge" style="font-size: 0.65rem; background: ${isActive ? 'rgba(255,255,255,0.25)' : 'var(--accent-blue-bg)'}; color: ${isActive ? '#ffffff' : 'var(--accent-primary)'};">${count}</span>
+        </button>
+      `;
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.subcat-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ver = btn.getAttribute('data-subcat');
+        const mainCatSelect = document.getElementById('salesHubMainCategoryFilter');
+        if (this.currentSelectedSubCategory === ver) {
+          this.currentSelectedSubCategory = '';
+          if (mainCatSelect) mainCatSelect.value = '';
+        } else {
+          this.currentSelectedSubCategory = ver;
+          if (mainCatSelect) mainCatSelect.value = ver;
+        }
+        this.populateProductDropdowns();
+        this.renderSalesHubInventory();
+      });
+    });
+  }
+
   // --- RENDER SALES HUB INVENTORY PREVIEW (VISITOR VIEW) ---
   async renderSalesHubInventory() {
     const tbody = document.getElementById('salesHubInventoryTbody');
     if (!tbody) return;
 
+    this.renderVersionPills();
+
+    const mainCatFilter = document.getElementById('salesHubMainCategoryFilter')?.value || '';
     const prodFilter = document.getElementById('salesHubProductFilter')?.value || '';
+    const selectedVersion = this.currentSelectedSubCategory || mainCatFilter || '';
+
     let accounts = db.getAccounts().filter(a => a.status === 'TERSEDIA');
     const products = db.getProducts();
+
+    if (selectedVersion) {
+      accounts = accounts.filter(a => {
+        const prod = products.find(p => p.id === a.product_id);
+        return prod && db.getMainCategoryForProduct(prod) === selectedVersion;
+      });
+    }
 
     if (prodFilter) {
       accounts = accounts.filter(a => a.product_id === prodFilter);
     }
 
     if (accounts.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Belum ada akun TERSEDIA di kategori ini.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada akun TERSEDIA di version ini.</td></tr>`;
       return;
     }
 
     let rowsHtml = '';
     for (const acc of accounts) {
-      const prod = products.find(p => p.id === acc.product_id);
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
+      const prodName = prod ? prod.name : (acc.product_name || acc.product_id || 'Produk Digital');
       let badgeClass = 'badge-available';
       const isLink = acc.access_type === 'LINK' || Boolean(acc.link);
       const linkVal = acc.link || acc.username_or_email;
@@ -1343,9 +1578,13 @@ class AccExpressApp {
           </span>
         `;
 
+      const versionVal = prod ? (db.getMainCategoryForProduct(prod) || 'OLD VIEW') : '-';
+      const displayVersion = this.renderVersionBadge(versionVal);
+
       rowsHtml += `
         <tr>
-          <td><strong>${prod ? prod.name : 'Produk'}</strong></td>
+          <td><strong>${prodName}</strong></td>
+          <td>${displayVersion}</td>
           <td>${usernameCell}</td>
           <td>${passwordCell}</td>
           <td><span class="badge ${badgeClass}">${acc.status}</span></td>
@@ -1359,7 +1598,7 @@ class AccExpressApp {
     }
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     this.bindTableActionEvents(tbody);
   }
@@ -1370,6 +1609,7 @@ class AccExpressApp {
     if (!tbody) return;
 
     const searchStr = (document.getElementById('invSearchInput')?.value || '').toLowerCase();
+    const versionFilter = document.getElementById('invVersionFilter')?.value || '';
     const productFilter = document.getElementById('invProductFilter')?.value || '';
     const statusFilter = document.getElementById('invStatusFilter')?.value || '';
 
@@ -1377,12 +1617,13 @@ class AccExpressApp {
     const products = db.getProducts();
 
     accounts = accounts.filter(acc => {
-      const prod = products.find(p => p.id === acc.product_id);
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
       const accText = `${acc.username_or_email || ''} ${acc.link || ''}`.toLowerCase();
       const matchSearch = accText.includes(searchStr) || (prod && prod.name.toLowerCase().includes(searchStr));
+      const matchVer = !versionFilter || (prod && db.getMainCategoryForProduct(prod) === versionFilter);
       const matchProd = !productFilter || acc.product_id === productFilter;
       const matchStatus = !statusFilter || acc.status === statusFilter;
-      return matchSearch && matchProd && matchStatus;
+      return matchSearch && matchVer && matchProd && matchStatus;
     });
 
     // Susunan teratas itu akun terkirim terbaru (sort by sent_at / updated_at desc)
@@ -1395,20 +1636,20 @@ class AccExpressApp {
     if (accounts.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="empty-state">
+          <td colspan="9" class="empty-state">
             <div class="empty-icon"><i data-lucide="inbox"></i></div>
             <div class="empty-text">Tidak ada akun yang ditemukan.</div>
           </td>
         </tr>
       `;
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
       return;
     }
 
     let rowsHtml = '';
     for (const acc of accounts) {
-      const prod = products.find(p => p.id === acc.product_id);
-      const prodName = prod ? prod.name : 'Produk';
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
+      const prodName = prod ? prod.name : (acc.product_name || acc.product_id || 'Produk Digital');
 
       let badgeClass = 'badge-available';
       if (acc.status === 'TERKIRIM') badgeClass = 'badge-sent';
@@ -1432,9 +1673,13 @@ class AccExpressApp {
           </span>
         `;
 
+      const versionVal = prod ? (db.getMainCategoryForProduct(prod) || 'OLD VIEW') : '-';
+      const displayVersion = this.renderVersionBadge(versionVal);
+
       rowsHtml += `
         <tr>
           <td><strong>${prodName}</strong></td>
+          <td>${displayVersion}</td>
           <td>${usernameCell}</td>
           <td>${passwordCell}</td>
           <td><span class="badge ${badgeClass}">${acc.status}</span></td>
@@ -1457,7 +1702,7 @@ class AccExpressApp {
     }
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     this.bindTableActionEvents(tbody);
   }
@@ -1597,7 +1842,7 @@ class AccExpressApp {
         </div>
       `;
       container.style.display = 'block';
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
       return;
     }
 
@@ -1664,7 +1909,7 @@ class AccExpressApp {
 
     container.innerHTML = cardsHtml;
     container.style.display = 'block';
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
   }
 
   // --- ADMIN AUTHENTICATION ---
@@ -1787,7 +2032,7 @@ class AccExpressApp {
         expHtml += '</div>';
         expContainer.innerHTML = expHtml;
       }
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
     }
 
     const expiredWrapper = document.getElementById('expiredAccountsCardWrapper');
@@ -1822,7 +2067,7 @@ class AccExpressApp {
         listHtml += '</div>';
         expiredListContainer.innerHTML = listHtml;
       }
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
     }
 
     const feedContainer = document.getElementById('recentActivityFeed');
@@ -1854,7 +2099,7 @@ class AccExpressApp {
         });
         feedHtml += '</div>';
         feedContainer.innerHTML = feedHtml;
-        if (window.lucide) window.lucide.createIcons();
+        this.refreshIcons();
       }
     }
   }
@@ -1865,6 +2110,7 @@ class AccExpressApp {
     if (!tbody) return;
 
     const search = (document.getElementById('adminAccSearch')?.value || '').toLowerCase();
+    const versionFilter = document.getElementById('adminAccVersionFilter')?.value || '';
     const prodFilter = document.getElementById('adminAccProductFilter')?.value || '';
     const statusFilter = document.getElementById('adminAccStatusFilter')?.value || '';
 
@@ -1872,12 +2118,13 @@ class AccExpressApp {
     const products = db.getProducts();
 
     accounts = accounts.filter(acc => {
-      const prod = products.find(p => p.id === acc.product_id);
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
       const accText = `${acc.username_or_email || ''} ${acc.link || ''}`.toLowerCase();
       const matchSearch = accText.includes(search) || (prod && prod.name.toLowerCase().includes(search));
+      const matchVer = !versionFilter || (prod && db.getMainCategoryForProduct(prod) === versionFilter);
       const matchProd = !prodFilter || acc.product_id === prodFilter;
       const matchStatus = !statusFilter || acc.status === statusFilter;
-      return matchSearch && matchProd && matchStatus;
+      return matchSearch && matchVer && matchProd && matchStatus;
     });
 
     // Susunan teratas itu akun terkirim terbaru (sort by sent_at / updated_at desc)
@@ -1894,7 +2141,8 @@ class AccExpressApp {
 
     let rowsHtml = '';
     accounts.forEach(acc => {
-      const prod = products.find(p => p.id === acc.product_id);
+      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
+      const prodName = prod ? prod.name : (acc.product_name || acc.product_id || '-');
       let badgeClass = 'badge-available';
       if (acc.status === 'TERKIRIM') badgeClass = 'badge-sent';
       if (acc.status === 'EXPIRED') badgeClass = 'badge-expired';
@@ -1917,14 +2165,17 @@ class AccExpressApp {
           </span>
         `;
 
+      const versionVal = prod ? (db.getMainCategoryForProduct(prod) || 'OLD VIEW') : '-';
+      const displayVersion = this.renderVersionBadge(versionVal);
+
       rowsHtml += `
         <tr>
-          <td><strong>${prod ? prod.name : '-'}</strong></td>
+          <td><strong>${prodName}</strong></td>
+          <td>${displayVersion}</td>
           <td>${usernameCell}</td>
           <td>${passwordCell}</td>
           <td><span class="badge ${badgeClass}">${acc.status}</span></td>
           <td>${acc.customer_whatsapp || '-'}</td>
-          <td>${TemplateEngine.formatDateIndo(acc.sent_at)}</td>
           <td>${TemplateEngine.formatDateIndo(acc.expires_at)}</td>
           <td>${acc.notes || '-'}</td>
           <td style="text-align: right;">
@@ -1938,7 +2189,7 @@ class AccExpressApp {
     });
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     tbody.querySelectorAll('.admin-toggle-pwd').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -2083,6 +2334,20 @@ class AccExpressApp {
     this.renderSalesHubInventory();
   }
 
+  renderVersionBadge(versionName) {
+    if (!versionName || versionName === '-') {
+      return `<span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 500;">-</span>`;
+    }
+    const nameUpper = String(versionName).toUpperCase();
+    if (nameUpper === 'OLD VIEW' || nameUpper === 'OLD') {
+      return `<span class="badge" style="background: rgba(234, 179, 8, 0.15); color: var(--status-warning); border: 1px solid rgba(234, 179, 8, 0.3); font-weight: 700;">${versionName}</span>`;
+    }
+    if (nameUpper.includes('V2') || nameUpper.includes('NEW VIEW V2')) {
+      return `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--status-available); border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;">${versionName}</span>`;
+    }
+    return `<span class="badge" style="background: var(--accent-blue-bg); color: var(--accent-primary); border: 1px solid rgba(37, 99, 235, 0.3); font-weight: 700;">${versionName}</span>`;
+  }
+
   // --- ADMIN PRODUCTS TAB ---
   renderAdminProducts() {
     const tbody = document.getElementById('adminProdTbody');
@@ -2092,7 +2357,7 @@ class AccExpressApp {
     const accounts = db.getAccounts();
 
     if (products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Belum ada kategori produk.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada kategori produk.</td></tr>`;
       return;
     }
 
@@ -2101,16 +2366,20 @@ class AccExpressApp {
       const prodAccs = accounts.filter(a => a.product_id === prod.id);
       const availCount = prodAccs.filter(a => a.status === 'TERSEDIA').length;
       const activeCount = prodAccs.filter(a => a.status === 'TERKIRIM').length;
-      const isAktif = prod.status === 'Aktif';
+      const isAktif = prod.status === 'Aktif' || prod.status === 'Active';
+
+      const mainCat = db.getMainCategoryForProduct(prod);
+      const versionBadge = this.renderVersionBadge(mainCat);
 
       rowsHtml += `
         <tr>
           <td><strong>${prod.name}</strong></td>
+          <td>${versionBadge}</td>
+          <td>
+            <span class="badge ${isAktif ? 'badge-available' : 'badge-expired'}">${isAktif ? 'Active' : 'Inactive'}</span>
+          </td>
           <td><span class="badge badge-available">${availCount} Tersedia</span></td>
           <td><span class="badge badge-sent">${activeCount} Terkirim</span></td>
-          <td>
-            <span class="badge ${isAktif ? 'badge-available' : 'badge-expired'}">${prod.status}</span>
-          </td>
           <td style="text-align: right;">
             <div class="action-buttons-cell">
               <button class="btn btn-warning btn-xs expire-cat-btn" data-prodid="${prod.id}" title="Expiredkan Semua Akun pada Kategori Ini"><i data-lucide="clock"></i></button>
@@ -2123,7 +2392,7 @@ class AccExpressApp {
     });
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     tbody.querySelectorAll('.expire-cat-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -2139,7 +2408,10 @@ class AccExpressApp {
         if (prod) {
           document.getElementById('prodFormId').value = prod.id;
           document.getElementById('prodFormName').value = prod.name;
-          document.getElementById('prodFormStatus').value = prod.status;
+          this.populateVersionDropdowns(prod.version || '');
+          const subCatInput = document.getElementById('prodFormSubCategory');
+          if (subCatInput) subCatInput.value = prod.sub_category || '';
+          document.getElementById('prodFormStatus').value = (prod.status === 'Tidak Aktif' || prod.status === 'Inactive') ? 'Tidak Aktif' : 'Aktif';
           document.getElementById('productModalTitle').innerText = 'Edit Kategori Produk';
           this.openModal('productModal');
         }
@@ -2160,6 +2432,18 @@ class AccExpressApp {
   async handleSaveProduct() {
     const id = document.getElementById('prodFormId').value;
     const name = document.getElementById('prodFormName').value.trim();
+    const selectVal = document.getElementById('prodFormVersionSelect')?.value || '';
+    const customVal = document.getElementById('prodFormVersionCustom')?.value.trim() || '';
+    let version = selectVal === '__NEW_VERSION__' ? customVal : selectVal;
+    version = (version || '').trim();
+
+
+
+    if (selectVal === '__NEW_VERSION__' && customVal) {
+      await db.addVersion(customVal);
+    }
+
+    const subCategory = document.getElementById('prodFormSubCategory')?.value.trim() || '-';
     const status = document.getElementById('prodFormStatus').value;
 
     if (!name) {
@@ -2170,14 +2454,97 @@ class AccExpressApp {
     const saved = await db.saveProduct({
       id: id || undefined,
       name,
+      version: version,
+      sub_category: subCategory,
       status: status
     });
 
-    await db.addActivityLog(this.currentAdmin, id ? 'Produk Diperbarui' : 'Produk Dibuat', 'produk', `${id ? 'Update' : 'Tambah'} kategori ${name}`, saved.id);
+    await db.addActivityLog(this.currentAdmin, id ? 'Produk Diperbarui' : 'Produk Dibuat', 'produk', `${id ? 'Update' : 'Tambah'} kategori ${name} (Version: ${version || 'Belum Klasifikasi'} | Sub Menu: ${subCategory})`, saved.id);
     this.showToast(`✓ Kategori Produk ${name} berhasil ${id ? 'diperbarui' : 'ditambahkan'}.`, 'success');
     this.closeModal('productModal');
     this.renderAdminProducts();
     this.populateProductDropdowns();
+    this.renderSubCategoryContainer();
+  }
+
+  // --- POPULATE & RENDER VERSIONS ---
+  populateVersionDropdowns(selectedVal = '') {
+    const versions = db.getVersions();
+    const selectEl = document.getElementById('prodFormVersionSelect');
+    const customInput = document.getElementById('prodFormVersionCustom');
+
+    if (selectEl) {
+      let html = `<option value="">-- Pilih Version (Optional) --</option>` +
+        versions.map(v => `<option value="${v}">${v}</option>`).join('') +
+        `<option value="__NEW_VERSION__">+ Tambah Version Baru...</option>`;
+      selectEl.innerHTML = html;
+
+      if (selectedVal && versions.includes(selectedVal)) {
+        selectEl.value = selectedVal;
+        if (customInput) customInput.style.display = 'none';
+      } else if (selectedVal && selectedVal !== '__NEW_VERSION__') {
+        selectEl.value = '__NEW_VERSION__';
+        if (customInput) {
+          customInput.style.display = 'block';
+          customInput.value = selectedVal;
+        }
+      } else {
+        selectEl.value = '';
+        if (customInput) customInput.style.display = 'none';
+      }
+    }
+
+    const tplVersionSelect = document.getElementById('tplFormVersion');
+    if (tplVersionSelect) {
+      let tplVerHtml = `<option value="" disabled selected>-- Pilih Version --</option>` +
+        versions.map(v => `<option value="${v}">${v}</option>`).join('');
+      tplVersionSelect.innerHTML = tplVerHtml;
+      if (selectedVal && versions.includes(selectedVal)) {
+        tplVersionSelect.value = selectedVal;
+      }
+    }
+  }
+
+  renderVersionsList() {
+    const container = document.getElementById('versionsListContainer');
+    if (!container) return;
+
+    const versions = db.getVersions();
+    if (versions.length === 0) {
+      container.innerHTML = `<div style="font-size: 0.78rem; color: var(--text-muted); padding: 0.5rem; text-align: center;">Belum ada version tersimpan.</div>`;
+      return;
+    }
+
+    let html = '';
+    versions.forEach(v => {
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.55rem; background: var(--bg-surface-hover); border-radius: var(--radius-sm); margin-bottom: 0.3rem;">
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">${v}</span>
+          <button type="button" class="btn btn-secondary btn-xs delete-version-btn" data-version="${v}" title="Hapus Version ${v}"
+            style="color: var(--status-expired); border-color: rgba(239, 68, 68, 0.3); padding: 0.15rem 0.4rem; height: 24px; font-size: 0.72rem;">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Hapus
+          </button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    this.refreshIcons();
+
+    container.querySelectorAll('.delete-version-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const verToDelete = e.currentTarget.getAttribute('data-version');
+        if (confirm(`Apakah Anda yakin ingin menghapus Version "${verToDelete}"?`)) {
+          await db.deleteVersion(verToDelete);
+          db.addActivityLog(this.currentAdmin || 'admin', 'Version Dihapus', 'produk', `Hapus Version: ${verToDelete}`);
+          this.showToast(`✓ Version "${verToDelete}" berhasil dihapus.`, 'info');
+          this.renderVersionsList();
+          this.populateVersionDropdowns();
+          this.renderAdminProducts();
+          this.renderSubCategoryContainer();
+        }
+      });
+    });
   }
 
   // --- ADMIN TEMPLATES TAB ---
@@ -2185,11 +2552,13 @@ class AccExpressApp {
     const tbody = document.getElementById('adminTplTbody');
     if (!tbody) return;
 
+    this.populateVersionDropdowns();
+
     const typeFilter = document.getElementById('tplTypeFilter')?.value || '';
     let templates = db.getTemplates();
     const products = db.getProducts();
 
-    if (typeFilter) {
+    if (typeFilter && typeFilter !== 'ALL') {
       templates = templates.filter(t => t.type === typeFilter);
     }
 
@@ -2202,7 +2571,12 @@ class AccExpressApp {
     templates.forEach(tpl => {
       const prod = products.find(p => p.id === tpl.product_id);
       const snippet = tpl.content.length > 55 ? tpl.content.substring(0, 55) + '...' : tpl.content;
-      const typeLabel = tpl.type === 'PRODUCT' ? `<span class="badge badge-sent">Produk: ${prod ? prod.name : 'Spesifik'}</span>` : `<span class="badge badge-available">Global</span>`;
+      let typeLabel = '<span class="badge badge-available">Global</span>';
+      if (tpl.type === 'PRODUCT') {
+        typeLabel = `<span class="badge badge-sent">Produk: ${prod ? prod.name : 'Spesifik'}</span>`;
+      } else if (tpl.type === 'VERSION') {
+        typeLabel = this.renderVersionBadge(tpl.version || 'Utama');
+      }
 
       rowsHtml += `
         <tr>
@@ -2227,7 +2601,7 @@ class AccExpressApp {
     });
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     // Event Listener Tombol / Cell Pratinjau Template
     tbody.querySelectorAll('.preview-tpl-btn, .preview-tpl-cell').forEach(el => {
@@ -2239,7 +2613,7 @@ class AccExpressApp {
 
         const allProds = db.getProducts();
         const prod = allProds.find(p => p.id === tpl.product_id) || db.getActiveProducts()[0] || { name: 'Produk Digital' };
-        
+
         const existingAccs = prod && prod.id ? db.getAccountsByProductId(prod.id) : [];
         const sampleAcc = existingAccs.find(a => a.access_type === 'LINK' || a.link) || existingAccs[0];
 
@@ -2295,11 +2669,18 @@ class AccExpressApp {
         const tpl = tpls.find(t => t.id === id);
         if (tpl) {
           this.populateProductDropdowns(null, tpl.product_id);
+          this.populateVersionDropdowns(tpl.version);
           document.getElementById('tplFormId').value = tpl.id;
           document.getElementById('tplFormName').value = tpl.name;
           document.getElementById('tplFormType').value = tpl.type || 'GLOBAL';
           document.getElementById('tplFormProductId').value = tpl.product_id || '';
-          document.getElementById('tplFormProductGroup').style.display = tpl.type === 'PRODUCT' ? 'block' : 'none';
+          if (document.getElementById('tplFormVersion')) {
+            document.getElementById('tplFormVersion').value = tpl.version || '';
+          }
+          const prodGrp = document.getElementById('tplFormProductGroup');
+          const verGrp = document.getElementById('tplFormVersionGroup');
+          if (prodGrp) prodGrp.style.display = tpl.type === 'PRODUCT' ? 'block' : 'none';
+          if (verGrp) verGrp.style.display = tpl.type === 'VERSION' ? 'block' : 'none';
           document.getElementById('tplFormContent').value = tpl.content;
           document.getElementById('templateModalTitle').innerText = 'Edit Template Pesan';
           this.openModal('templateModal');
@@ -2322,10 +2703,21 @@ class AccExpressApp {
     const name = document.getElementById('tplFormName').value.trim();
     const type = document.getElementById('tplFormType').value;
     const productId = document.getElementById('tplFormProductId').value;
+    const version = document.getElementById('tplFormVersion')?.value || '';
     const content = document.getElementById('tplFormContent').value.trim();
 
     if (!name || !content) {
       this.showToast('Silakan lengkapi nama dan isi template.', 'error');
+      return;
+    }
+
+    if (type === 'PRODUCT' && !productId) {
+      this.showToast('Silakan pilih produk spesifik untuk tipe Template Produk.', 'error');
+      return;
+    }
+
+    if (type === 'VERSION' && !version) {
+      this.showToast('Silakan pilih Version untuk tipe Template Version.', 'error');
       return;
     }
 
@@ -2334,6 +2726,7 @@ class AccExpressApp {
       name,
       type,
       product_id: type === 'PRODUCT' ? productId : '',
+      version: type === 'VERSION' ? version : '',
       content
     });
 
@@ -2389,7 +2782,7 @@ class AccExpressApp {
     });
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
   }
 
   // --- ADMIN ACTIVITY LOG TAB ---
@@ -2417,7 +2810,7 @@ class AccExpressApp {
     });
 
     tbody.innerHTML = rowsHtml;
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
   }
 
   // --- ADMIN SETTINGS TAB ---
@@ -2507,7 +2900,7 @@ class AccExpressApp {
 
           return {
             'No': idx + 1,
-            'Produk': prod ? prod.name : 'Unknown Product',
+            'Produk': prod ? prod.name : (acc.product_name || acc.product_id || 'Produk Digital'),
             'Tipe Akses': isLink ? 'LINK' : 'ACCOUNT',
             'Email / Username / Link': isLink ? (acc.link || acc.username_or_email) : (acc.username_or_email || '-'),
             'Password': decryptedPassMap[acc.id] || '-',
@@ -2683,10 +3076,10 @@ class AccExpressApp {
     const categoryFilterSelect = document.getElementById('idKeyCategoryFilter');
 
     const uniqueCategories = Array.from(new Set(idKeys.map(k => k.category || 'Turnitin No Repository').filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-    
+
     if (categoryFilterSelect) {
       const currentSelected = categoryFilterSelect.value;
-      categoryFilterSelect.innerHTML = `<option value="">Semua Kategori</option>` + 
+      categoryFilterSelect.innerHTML = `<option value="">Semua Kategori</option>` +
         uniqueCategories.map(cat => `<option value="${cat}" ${cat === currentSelected ? 'selected' : ''}>${cat}</option>`).join('');
     }
 
@@ -2713,7 +3106,7 @@ class AccExpressApp {
     filtered.sort((a, b) => {
       const numA = parseInt(String(a.assignment || a.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
       const numB = parseInt(String(b.assignment || b.assignment_count || 0).replace(/\D/g, ''), 10) || 0;
-      
+
       if (numA !== numB) {
         return numA - numB;
       }
@@ -2732,7 +3125,7 @@ class AccExpressApp {
           </td>
         </tr>
       `;
-      if (window.lucide) window.lucide.createIcons();
+      this.refreshIcons();
       return;
     }
 
@@ -2795,7 +3188,7 @@ class AccExpressApp {
       `;
     }).join('');
 
-    if (window.lucide) window.lucide.createIcons();
+    this.refreshIcons();
 
     // Rebind table buttons
     tbody.querySelectorAll('.copy-single-val-btn').forEach(btn => {
@@ -2823,7 +3216,7 @@ class AccExpressApp {
           document.getElementById('idKeyFormDuration').value = item.duration || 1;
           const notesEl = document.getElementById('idKeyFormNotes');
           if (notesEl) notesEl.value = item.notes || '';
-          
+
           const resetGroup = document.getElementById('idKeyResetDurationGroup');
           if (resetGroup) resetGroup.style.display = 'block';
           const resetCheck = document.getElementById('idKeyFormResetCreated');
@@ -2831,7 +3224,7 @@ class AccExpressApp {
 
           const titleEl = document.getElementById('idKeyModalFormTitle');
           if (titleEl) titleEl.innerHTML = '<i data-lucide="key"></i> Edit Enrollment Key';
-          if (window.lucide) window.lucide.createIcons();
+          this.refreshIcons();
 
           this.openModal('addIdKeyFormModal');
         }
@@ -3191,7 +3584,7 @@ class AccExpressApp {
     this.renderAdminAccounts();
     this.renderInventoryTable();
     this.renderSalesHubInventory();
-    if (this.currentAdmin) this.renderAdminDashboard();
+    this.renderAdminDashboard();
 
     this.showToast(`✓ Upload Selesai! ${results.addedCount + results.updatedFromExpiredCount} akun siap di stok TERSEDIA.`, 'success', 4000);
   }
@@ -3277,7 +3670,12 @@ class AccExpressApp {
 }
 
 // App Initialization
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const app = new AccExpressApp();
+    app.init();
+  });
+} else {
   const app = new AccExpressApp();
   app.init();
-});
+}

@@ -31,12 +31,34 @@ export async function fetchAllFromSupabase(tableName) {
   const sb = getSupabase();
   if (!sb) return null;
   try {
-    const { data, error } = await sb.from(tableName).select('*');
-    if (error) {
-      console.warn(`[Supabase] Fetch error for table ${tableName}:`, error);
-      return null;
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    let keepFetching = true;
+
+    while (keepFetching) {
+      const { data, error } = await sb
+        .from(tableName)
+        .select('*')
+        .range(from, from + step - 1);
+
+      if (error) {
+        console.warn(`[Supabase] Fetch error for table ${tableName}:`, error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          keepFetching = false;
+        } else {
+          from += step;
+        }
+      } else {
+        keepFetching = false;
+      }
     }
-    return data;
+    return allData;
   } catch (err) {
     console.warn(`[Supabase] Network/Fetch exception for table ${tableName}:`, err);
     return null;
