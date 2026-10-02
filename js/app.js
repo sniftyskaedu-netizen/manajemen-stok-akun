@@ -1452,89 +1452,18 @@ class AccExpressApp {
     this.renderSalesHubInventory();
   }
 
-  renderSubCategoryContainer() {
-    this.renderVersionPills();
-  }
-
-  renderSubCategoryPills() {
-    this.renderVersionPills();
-  }
-
-  renderVersionPills() {
-    const container = document.getElementById('qaSubCategoryPillsContainer');
-    if (!container) return;
-
-    const mainCatFilter = document.getElementById('salesHubMainCategoryFilter')?.value || '';
-    const prodFilter = document.getElementById('salesHubProductFilter')?.value || '';
-
-    let availableAccounts = db.getAccounts().filter(a => a.status === 'TERSEDIA');
-    const products = db.getProducts();
-
-    if (prodFilter) {
-      availableAccounts = availableAccounts.filter(a => a.product_id === prodFilter);
-    }
-
-    const versionCounts = {};
-
-    availableAccounts.forEach(acc => {
-      const prod = products.find(p => p.id === acc.product_id || p.name === acc.product_id) || db.getProductById(acc.product_id);
-      if (prod) {
-        const ver = db.getMainCategoryForProduct(prod) || 'OLD VIEW';
-        versionCounts[ver] = (versionCounts[ver] || 0) + 1;
-      }
-    });
-
-    const activeVersion = this.currentSelectedSubCategory || mainCatFilter || '';
-    const sortedVersions = Object.keys(versionCounts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-
-    if (sortedVersions.length === 0) {
-      container.style.display = 'none';
-      container.innerHTML = '';
-      return;
-    }
-
-    container.style.display = 'flex';
-    let html = '';
-    sortedVersions.forEach(ver => {
-      const isActive = activeVersion === ver;
-      const count = versionCounts[ver];
-      html += `
-        <button type="button" class="subcat-pill ${isActive ? 'active' : ''}" data-subcat="${ver}"
-          style="height: 30px; padding: 0.2rem 0.55rem; font-size: 0.74rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-color)'}; background: ${isActive ? 'var(--accent-primary)' : 'var(--bg-surface-hover)'}; color: ${isActive ? '#ffffff' : 'var(--text-main)'}; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; transition: all 0.2s ease;">
-          ${ver} <span class="badge" style="font-size: 0.65rem; background: ${isActive ? 'rgba(255,255,255,0.25)' : 'var(--accent-blue-bg)'}; color: ${isActive ? '#ffffff' : 'var(--accent-primary)'};">${count}</span>
-        </button>
-      `;
-    });
-
-    container.innerHTML = html;
-
-    container.querySelectorAll('.subcat-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const ver = btn.getAttribute('data-subcat');
-        const mainCatSelect = document.getElementById('salesHubMainCategoryFilter');
-        if (this.currentSelectedSubCategory === ver) {
-          this.currentSelectedSubCategory = '';
-          if (mainCatSelect) mainCatSelect.value = '';
-        } else {
-          this.currentSelectedSubCategory = ver;
-          if (mainCatSelect) mainCatSelect.value = ver;
-        }
-        this.populateProductDropdowns();
-        this.renderSalesHubInventory();
-      });
-    });
-  }
+  renderSubCategoryContainer() {}
+  renderSubCategoryPills() {}
+  renderVersionPills() {}
 
   // --- RENDER SALES HUB INVENTORY PREVIEW (VISITOR VIEW) ---
   async renderSalesHubInventory() {
     const tbody = document.getElementById('salesHubInventoryTbody');
     if (!tbody) return;
 
-    this.renderVersionPills();
-
     const mainCatFilter = document.getElementById('salesHubMainCategoryFilter')?.value || '';
     const prodFilter = document.getElementById('salesHubProductFilter')?.value || '';
-    const selectedVersion = this.currentSelectedSubCategory || mainCatFilter || '';
+    const selectedVersion = mainCatFilter || '';
 
     let accounts = db.getAccounts().filter(a => a.status === 'TERSEDIA');
     const products = db.getProducts();
