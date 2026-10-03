@@ -67,7 +67,7 @@ export async function fetchAllFromSupabase(tableName) {
 
 const KNOWN_TABLE_COLUMNS = {
   [SUPABASE_TABLES.ACCOUNTS]: [
-    'id', 'product_id', 'access_type', 'username_or_email', 'encrypted_password',
+    'id', 'product_id', 'product_name', 'version', 'access_type', 'username_or_email', 'encrypted_password',
     'link', 'status', 'customer_whatsapp', 'duration', 'duration_unit',
     'sent_at', 'expires_at', 'notes', 'created_at', 'updated_at'
   ],
@@ -97,9 +97,10 @@ export async function upsertToSupabase(tableName, records) {
 
     if (tableName === SUPABASE_TABLES.ACCOUNTS) {
       const { data: validProducts } = await sb.from(SUPABASE_TABLES.PRODUCTS).select('id');
-      const validProdList = validProducts || [];
-      validProdIds = new Set(validProdList.map(p => p.id));
-      fallbackProdId = validProdList.length > 0 ? validProdList[0].id : null;
+      if (validProducts && validProducts.length > 0) {
+        validProdIds = new Set(validProducts.map(p => p.id));
+        fallbackProdId = validProducts[0].id;
+      }
     }
 
     const allowedColumns = KNOWN_TABLE_COLUMNS[tableName];
@@ -118,7 +119,7 @@ export async function upsertToSupabase(tableName, records) {
       }
 
       if (tableName === SUPABASE_TABLES.ACCOUNTS) {
-        if (!cleanItem.product_id || (validProdIds && !validProdIds.has(cleanItem.product_id))) {
+        if (!cleanItem.product_id) {
           if (fallbackProdId) {
             cleanItem.product_id = fallbackProdId;
           }

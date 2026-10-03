@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS accexpress_products (
 CREATE TABLE IF NOT EXISTS accexpress_accounts (
   id TEXT PRIMARY KEY,
   product_id TEXT REFERENCES accexpress_products(id) ON DELETE CASCADE,
+  product_name TEXT,
+  version TEXT,
   access_type TEXT DEFAULT 'ACCOUNT',
   username_or_email TEXT,
   encrypted_password TEXT,

@@ -28,8 +28,11 @@ class AccExpressDB {
     // 1. Sync data dari database Cloud Supabase dan AWAIT hasilnya agar cache & memory tersinkron penuh
     await this.syncFromSupabase().catch(e => console.warn('[Supabase Sync Init Warning]:', e));
 
-    // 2. Jika data lokal / Supabase masih kosong, jalankan seeding awal
-    if (!localStorage.getItem(this.STORAGE_KEYS.ADMIN_USERS)) {
+    // 2. Jika data lokal & remote masih kosong (belum ada admin / produk / akun), jalankan seeding awal
+    const localAccounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    const localProducts = this._get(this.STORAGE_KEYS.PRODUCTS);
+    const localAdmins = this._get(this.STORAGE_KEYS.ADMIN_USERS);
+    if ((!localAdmins || localAdmins.length === 0) && (!localAccounts || localAccounts.length === 0) && (!localProducts || localProducts.length === 0)) {
       await this.seedInitialData();
     }
 
@@ -75,8 +78,11 @@ class AccExpressDB {
             const localTime = new Date(localItem.updated_at || localItem.created_at || 0).getTime();
             const remoteTime = new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime();
             if (localTime > remoteTime) {
-              mergedMap.set(id, localItem);
+              mergedMap.set(id, { ...remoteItem, ...localItem });
               pendingPush.push(localItem);
+            } else {
+              // Remote item timestamp is newer or equal: merge local fields so local-only properties are preserved
+              mergedMap.set(id, { ...localItem, ...remoteItem });
             }
           }
         });
@@ -615,8 +621,11 @@ class AccExpressDB {
         created_at: now.toISOString()
       }
     ];
-    this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts);
+    const existingAccounts = this._get(this.STORAGE_KEYS.ACCOUNTS);
+    if (!existingAccounts || existingAccounts.length === 0) {
+      this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts);
+    }
 
     // 4. Default WhatsApp Message Template
     const templates = [
@@ -1128,9 +1137,12 @@ class AccExpressDB {
     if (accData.id && String(accData.id).trim() !== '') {
       const idx = accounts.findIndex(a => a.id === accData.id);
       if (idx !== -1) {
+        const targetProd = this.getProductById(accData.product_id || accounts[idx].product_id);
         accounts[idx] = {
           ...accounts[idx],
           ...accData,
+          product_name: targetProd ? targetProd.name : (accData.product_name || accounts[idx].product_name || 'Produk Digital'),
+          version: targetProd ? (targetProd.version || this.getMainCategoryForProduct(targetProd)) : (accData.version || accounts[idx].version || ''),
           status: accData.status || (accounts[idx].status === 'EXPIRED' ? 'TERSEDIA' : accounts[idx].status),
           encrypted_password: encPass || accounts[idx].encrypted_password,
           updated_at: new Date().toISOString()
