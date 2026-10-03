@@ -54,6 +54,22 @@ class AccExpressApp {
     this.updateAdminAuthState();
     this.restoreSavedViewState();
 
+    // Event listener saat jendela browser ditutup atau berganti tab
+    window.addEventListener('beforeunload', () => {
+      try {
+        db.updateAutomaticExpirations();
+      } catch (e) {}
+    });
+
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        db.syncFromSupabase().then(() => {
+          this.renderInventoryTable();
+          this.renderSalesHubInventory();
+        }).catch(e => console.warn(e));
+      }
+    });
+
     this.refreshIcons();
   }
 

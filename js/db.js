@@ -25,8 +25,8 @@ class AccExpressDB {
   }
 
   async init() {
-    // 1. Sync data dari database Cloud Supabase (non-blocking agar app langsung tampil dari cache)
-    this.syncFromSupabase().catch(e => console.warn('[Supabase Sync Init Warning]:', e));
+    // 1. Sync data dari database Cloud Supabase dan AWAIT hasilnya agar cache & memory tersinkron penuh
+    await this.syncFromSupabase().catch(e => console.warn('[Supabase Sync Init Warning]:', e));
 
     // 2. Jika data lokal / Supabase masih kosong, jalankan seeding awal
     if (!localStorage.getItem(this.STORAGE_KEYS.ADMIN_USERS)) {
@@ -961,7 +961,7 @@ class AccExpressDB {
     }
 
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
-    upsertToSupabase(SUPABASE_TABLES.PRODUCTS, savedProd).catch(e => console.warn('[Supabase Sync Error]', e));
+    await upsertToSupabase(SUPABASE_TABLES.PRODUCTS, savedProd).catch(e => console.warn('[Supabase Sync Error]', e));
     return savedProd;
   }
 
@@ -974,7 +974,7 @@ class AccExpressDB {
     const accounts = this._get(this.STORAGE_KEYS.ACCOUNTS) || [];
     let accountsUpdated = false;
 
-    accounts.forEach(acc => {
+    for (const acc of accounts) {
       if (acc.product_id === id || acc.product_id === prodName) {
         if (!acc.product_name && prodName) {
           acc.product_name = prodName;
@@ -984,9 +984,9 @@ class AccExpressDB {
         }
         acc.status = 'EXPIRED';
         accountsUpdated = true;
-        upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, acc).catch(e => console.warn('[Supabase Sync Error]', e));
+        await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, acc).catch(e => console.warn('[Supabase Sync Error]', e));
       }
-    });
+    }
 
     if (accountsUpdated) {
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
@@ -995,7 +995,7 @@ class AccExpressDB {
     // 2. Hapus produk dari list produk
     const products = this.getProducts().filter(p => p.id !== id);
     this._set(this.STORAGE_KEYS.PRODUCTS, products);
-    deleteFromSupabase(SUPABASE_TABLES.PRODUCTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
+    await deleteFromSupabase(SUPABASE_TABLES.PRODUCTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
   }
 
   // --- Accounts CRUD ---
@@ -1174,7 +1174,7 @@ class AccExpressDB {
     }
 
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc).catch(e => console.warn('[Supabase Sync Error]', e));
+    await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, savedAcc).catch(e => console.warn('[Supabase Sync Error]', e));
     return savedAcc;
   }
 
@@ -1214,7 +1214,7 @@ class AccExpressDB {
 
     if (count > 0) {
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-      upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts).catch(e => console.warn('[Supabase Sync Error]', e));
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts).catch(e => console.warn('[Supabase Sync Error]', e));
       await this.addActivityLog(
         'admin',
         'Mass Expire Akun',
@@ -1229,7 +1229,7 @@ class AccExpressDB {
   async deleteAccount(id) {
     const accounts = this.getAccounts().filter(a => a.id !== id);
     this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-    deleteFromSupabase(SUPABASE_TABLES.ACCOUNTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
+    await deleteFromSupabase(SUPABASE_TABLES.ACCOUNTS, id).catch(e => console.warn('[Supabase Sync Error]', e));
   }
 
   async resetAccount(id) {
@@ -1242,7 +1242,7 @@ class AccExpressDB {
       accounts[idx].expires_at = null;
       accounts[idx].updated_at = new Date().toISOString();
       this._set(this.STORAGE_KEYS.ACCOUNTS, accounts);
-      upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts[idx]).catch(e => console.warn('[Supabase Sync Error]', e));
+      await upsertToSupabase(SUPABASE_TABLES.ACCOUNTS, accounts[idx]).catch(e => console.warn('[Supabase Sync Error]', e));
       return accounts[idx];
     }
     return null;

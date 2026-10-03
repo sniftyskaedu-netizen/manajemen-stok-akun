@@ -65,29 +65,68 @@ export async function fetchAllFromSupabase(tableName) {
   }
 }
 
+const KNOWN_TABLE_COLUMNS = {
+  [SUPABASE_TABLES.ACCOUNTS]: [
+    'id', 'product_id', 'access_type', 'username_or_email', 'encrypted_password',
+    'link', 'status', 'customer_whatsapp', 'duration', 'duration_unit',
+    'sent_at', 'expires_at', 'notes', 'created_at', 'updated_at'
+  ],
+  [SUPABASE_TABLES.PRODUCTS]: [
+    'id', 'name', 'description', 'default_duration', 'duration_unit', 'status', 'version', 'created_at', 'updated_at'
+  ],
+  [SUPABASE_TABLES.TEMPLATES]: [
+    'id', 'name', 'type', 'product_id', 'content', 'is_default', 'created_at', 'updated_at'
+  ],
+  [SUPABASE_TABLES.ID_KEYS]: [
+    'id', 'category', 'id_key', 'class_id', 'assignment', 'status', 'created_at', 'updated_at'
+  ],
+  [SUPABASE_TABLES.TRANSACTIONS]: [
+    'id', 'account_id', 'product_id', 'customer_whatsapp', 'delivery_method', 'duration', 'duration_unit', 'sent_at', 'expires_at', 'status', 'created_at'
+  ]
+};
+
 export async function upsertToSupabase(tableName, records) {
   const sb = getSupabase();
   if (!sb) return false;
   try {
-    let payload = Array.isArray(records) ? records : [records];
+    const rawPayload = Array.isArray(records) ? records : [records];
+    if (!rawPayload || rawPayload.length === 0) return true;
 
-    if (tableName === SUPABASE_TABLES.ACCOUNTS && payload.length > 0) {
+    let validProdIds = null;
+    let fallbackProdId = null;
+
+    if (tableName === SUPABASE_TABLES.ACCOUNTS) {
       const { data: validProducts } = await sb.from(SUPABASE_TABLES.PRODUCTS).select('id');
       const validProdList = validProducts || [];
-      const validProdIds = new Set(validProdList.map(p => p.id));
-      const fallbackProdId = validProdList.length > 0 ? validProdList[0].id : null;
+      validProdIds = new Set(validProdList.map(p => p.id));
+      fallbackProdId = validProdList.length > 0 ? validProdList[0].id : null;
+    }
 
-      payload = payload.map(acc => {
-        const cleanAcc = { ...acc };
-        if (!cleanAcc.product_id || !validProdIds.has(cleanAcc.product_id)) {
-          if (!cleanAcc.product_name) cleanAcc.product_name = cleanAcc.product_id || 'Produk Digital';
+    const allowedColumns = KNOWN_TABLE_COLUMNS[tableName];
+
+    const payload = rawPayload.map(item => {
+      const cleanItem = {};
+
+      if (allowedColumns && Array.isArray(allowedColumns)) {
+        allowedColumns.forEach(col => {
+          if (Object.prototype.hasOwnProperty.call(item, col) && item[col] !== undefined) {
+            cleanItem[col] = item[col];
+          }
+        });
+      } else {
+        Object.assign(cleanItem, item);
+      }
+
+      if (tableName === SUPABASE_TABLES.ACCOUNTS) {
+        if (!cleanItem.product_id || (validProdIds && !validProdIds.has(cleanItem.product_id))) {
           if (fallbackProdId) {
-            cleanAcc.product_id = fallbackProdId;
+            cleanItem.product_id = fallbackProdId;
           }
         }
-        return cleanAcc;
-      });
-    }
+      }
+
+      return cleanItem;
+    });
 
     const { error } = await sb.from(tableName).upsert(payload);
     if (error) {
