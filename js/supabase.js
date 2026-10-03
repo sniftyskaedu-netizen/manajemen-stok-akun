@@ -69,7 +69,22 @@ export async function upsertToSupabase(tableName, records) {
   const sb = getSupabase();
   if (!sb) return false;
   try {
-    const payload = Array.isArray(records) ? records : [records];
+    let payload = Array.isArray(records) ? records : [records];
+
+    if (tableName === SUPABASE_TABLES.ACCOUNTS && payload.length > 0) {
+      const { data: validProducts } = await sb.from(SUPABASE_TABLES.PRODUCTS).select('id');
+      const validProdIds = new Set((validProducts || []).map(p => p.id));
+
+      payload = payload.map(acc => {
+        const cleanAcc = { ...acc };
+        if (cleanAcc.product_id && !validProdIds.has(cleanAcc.product_id)) {
+          if (!cleanAcc.product_name) cleanAcc.product_name = cleanAcc.product_id;
+          cleanAcc.product_id = null;
+        }
+        return cleanAcc;
+      });
+    }
+
     const { error } = await sb.from(tableName).upsert(payload);
     if (error) {
       console.error(`[Supabase] Upsert error on ${tableName}:`, error);

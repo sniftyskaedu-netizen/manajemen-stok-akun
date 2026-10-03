@@ -54,13 +54,49 @@ class AccExpressDB {
         fetchAllFromSupabase(SUPABASE_TABLES.ID_KEYS)
       ]);
 
-      if (Array.isArray(remoteProducts)) this._set(this.STORAGE_KEYS.PRODUCTS, remoteProducts);
-      if (Array.isArray(remoteAccounts)) this._set(this.STORAGE_KEYS.ACCOUNTS, remoteAccounts);
-      if (Array.isArray(remoteTemplates)) this._set(this.STORAGE_KEYS.TEMPLATES, remoteTemplates);
-      if (Array.isArray(remoteTx)) this._set(this.STORAGE_KEYS.TRANSACTIONS, remoteTx);
-      if (Array.isArray(remoteLogs)) this._set(this.STORAGE_KEYS.ACTIVITY_LOGS, remoteLogs);
-      if (Array.isArray(remoteAdmin)) this._set(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin);
-      if (Array.isArray(remoteIdKeys)) this._set(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys);
+      const mergeCollection = (storageKey, remoteList, tableName) => {
+        if (!Array.isArray(remoteList)) return;
+        const localList = this._get(storageKey) || [];
+        const mergedMap = new Map();
+        const pendingPush = [];
+
+        remoteList.forEach(item => {
+          if (item && item.id) mergedMap.set(String(item.id), item);
+        });
+
+        localList.forEach(localItem => {
+          if (!localItem || !localItem.id) return;
+          const id = String(localItem.id);
+          if (!mergedMap.has(id)) {
+            mergedMap.set(id, localItem);
+            pendingPush.push(localItem);
+          } else {
+            const remoteItem = mergedMap.get(id);
+            const localTime = new Date(localItem.updated_at || localItem.created_at || 0).getTime();
+            const remoteTime = new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime();
+            if (localTime > remoteTime) {
+              mergedMap.set(id, localItem);
+              pendingPush.push(localItem);
+            }
+          }
+        });
+
+        const finalList = Array.from(mergedMap.values());
+        this._set(storageKey, finalList);
+
+        if (pendingPush.length > 0 && tableName) {
+          upsertToSupabase(tableName, pendingPush).catch(e => console.warn(`[Supabase Sync Push Error ${tableName}]:`, e));
+        }
+      };
+
+      mergeCollection(this.STORAGE_KEYS.PRODUCTS, remoteProducts, SUPABASE_TABLES.PRODUCTS);
+      mergeCollection(this.STORAGE_KEYS.ACCOUNTS, remoteAccounts, SUPABASE_TABLES.ACCOUNTS);
+      mergeCollection(this.STORAGE_KEYS.TEMPLATES, remoteTemplates, SUPABASE_TABLES.TEMPLATES);
+      mergeCollection(this.STORAGE_KEYS.TRANSACTIONS, remoteTx, SUPABASE_TABLES.TRANSACTIONS);
+      mergeCollection(this.STORAGE_KEYS.ACTIVITY_LOGS, remoteLogs, SUPABASE_TABLES.ACTIVITY_LOGS);
+      mergeCollection(this.STORAGE_KEYS.ADMIN_USERS, remoteAdmin, SUPABASE_TABLES.ADMIN_USERS);
+      mergeCollection(this.STORAGE_KEYS.ID_KEYS, remoteIdKeys, SUPABASE_TABLES.ID_KEYS);
+
       if (remoteSettings && remoteSettings.length > 0) {
         const settingsRecord = remoteSettings.find(s => s.id === 'main_settings') || remoteSettings[0];
         if (settingsRecord) {

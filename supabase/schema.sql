@@ -120,6 +120,20 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
+    WHERE table_name='accexpress_accounts' AND column_name='product_name'
+  ) THEN
+    ALTER TABLE accexpress_accounts ADD COLUMN product_name TEXT;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='accexpress_accounts' AND column_name='version'
+  ) THEN
+    ALTER TABLE accexpress_accounts ADD COLUMN version TEXT;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
     WHERE table_name='accexpress_id_keys' AND column_name='assignment'
   ) THEN
     ALTER TABLE accexpress_id_keys ADD COLUMN assignment TEXT DEFAULT '-';
