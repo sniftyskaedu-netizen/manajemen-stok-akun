@@ -1147,12 +1147,14 @@ class AccExpressDB {
 
       const isLinkType = cleanData.access_type === 'LINK' || Boolean(cleanData.link);
 
-      const targetProd = this.getProductById(cleanData.product_id);
+      const allProducts = this.getProducts();
+      const targetProd = this.getProductById(cleanData.product_id) || (allProducts.length > 0 ? allProducts[0] : null);
+      const finalProdId = targetProd ? targetProd.id : (cleanData.product_id || 'prod_default');
 
       savedAcc = {
         id: this._generateId(),
-        product_id: cleanData.product_id,
-        product_name: targetProd ? targetProd.name : (cleanData.product_name || cleanData.product_id),
+        product_id: finalProdId,
+        product_name: targetProd ? targetProd.name : (cleanData.product_name || cleanData.product_id || 'Produk Digital'),
         version: targetProd ? (targetProd.version || this.getMainCategoryForProduct(targetProd)) : (cleanData.version || ''),
         access_type: isLinkType ? 'LINK' : 'ACCOUNT',
         username_or_email: isLinkType ? (cleanData.link || cleanData.username_or_email || '') : (cleanData.username_or_email || ''),

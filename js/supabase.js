@@ -73,13 +73,17 @@ export async function upsertToSupabase(tableName, records) {
 
     if (tableName === SUPABASE_TABLES.ACCOUNTS && payload.length > 0) {
       const { data: validProducts } = await sb.from(SUPABASE_TABLES.PRODUCTS).select('id');
-      const validProdIds = new Set((validProducts || []).map(p => p.id));
+      const validProdList = validProducts || [];
+      const validProdIds = new Set(validProdList.map(p => p.id));
+      const fallbackProdId = validProdList.length > 0 ? validProdList[0].id : null;
 
       payload = payload.map(acc => {
         const cleanAcc = { ...acc };
-        if (cleanAcc.product_id && !validProdIds.has(cleanAcc.product_id)) {
-          if (!cleanAcc.product_name) cleanAcc.product_name = cleanAcc.product_id;
-          cleanAcc.product_id = null;
+        if (!cleanAcc.product_id || !validProdIds.has(cleanAcc.product_id)) {
+          if (!cleanAcc.product_name) cleanAcc.product_name = cleanAcc.product_id || 'Produk Digital';
+          if (fallbackProdId) {
+            cleanAcc.product_id = fallbackProdId;
+          }
         }
         return cleanAcc;
       });
